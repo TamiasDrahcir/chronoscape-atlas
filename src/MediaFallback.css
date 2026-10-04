@@ -1,0 +1,66 @@
+.challenge-photo-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  overflow: hidden;
+  padding: 24px;
+  color: #f8f5eb;
+  text-align: center;
+  background: radial-gradient(ellipse at 50% 24%, #84765a 0, transparent 54%), linear-gradient(145deg, #52594d, #383b31 58%, #292a24);
+}
+
+.challenge-photo-fallback::before {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(135deg, transparent 0 28px, #ffffff08 29px 30px);
+  content: '';
+}
+
+.challenge-photo-fallback svg,
+.challenge-photo-fallback span,
+.challenge-photo-fallback strong {
+  position: relative;
+}
+
+.challenge-photo-fallback svg {
+  color: #e2b27a;
+}
+
+.challenge-photo-fallback span {
+  color: #e2b27a;
+  font: 9px var(--mono);
+  letter-spacing: .12em;
+}
+
+.challenge-photo-fallback strong {
+  max-width: 28rem;
+  font: 500 clamp(20px, 3vw, 34px)/1.15 var(--serif);
+}
+
+.photo-shade {
+  z-index: 3;
+}
+
+.photo-meta,
+.photo-caption,
+.photo-frame-mark {
+  z-index: 4;
+}
+
+.reveal-photo:after {
+  z-index: 1;
+}
+
+.reveal-photo .challenge-photo-fallback {
+  z-index: 2;
+}
+
+.reveal-stamp,
+.reveal-photo-label {
+  z-index: 3;
+}

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet'
 import L, { type LatLng } from 'leaflet'
-import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Compass, MapPin, RotateCcw, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Compass, ImageOff, MapPin, RotateCcw, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import './App.css'
+import './MediaFallback.css'
 import AdminPanel from './AdminPanel'
 import { dateToInputValue, formatDuration, formatMoment, getRoundScore, getSpeedLabel, getTier, type Challenge, type Family, type Guess, type LeaderboardEntry, type RoundResult, CHALLENGES, FAMILIES, MAX_DATE, MIN_DATE, loadLeaderboard, saveLeaderboard, shuffleChallenges } from './game'
 import { fromChallengeDTO, isApiConfigured, listPublicChallenges, type ChallengeDTO } from './api'
@@ -19,6 +20,18 @@ function ClickableMap({ onPick }: { onPick: (point: LatLng) => void }) {
   return null
 }
 
+function ChallengePhoto({ image, alt, title }: { image: string; alt: string; title: string }) {
+  const [failedImage, setFailedImage] = useState('')
+  if (!image || failedImage === image) {
+    return <div className="challenge-photo-fallback" role="img" aria-label={`Photo unavailable: ${alt}`}>
+      <ImageOff size={30} aria-hidden="true" />
+      <span>PHOTO UNAVAILABLE</span>
+      <strong>{title}</strong>
+    </div>
+  }
+  return <img src={image} alt={alt} onError={() => setFailedImage(image)} />
+}
+
 function MapView({ scope, guess, onPick, round }: { scope: MapScope; guess: Guess['location']; onPick: (point: LatLng) => void; round: number }) {
   const presets: Record<MapScope, { center: [number, number]; zoom: number }> = {
     campus: { center: [30.6188, -96.3365], zoom: 15 },
@@ -27,7 +40,7 @@ function MapView({ scope, guess, onPick, round }: { scope: MapScope; guess: Gues
   }
   const preset = presets[scope]
   return <MapContainer key={`${round}-${scope}`} center={preset.center} zoom={preset.zoom} scrollWheelZoom className="leaflet-map">
-    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
     <ClickableMap onPick={onPick} />
     {guess && <Marker position={[guess.lat, guess.lng]} icon={guessPinIcon} />}
   </MapContainer>
@@ -167,7 +180,7 @@ function App() {
     {screen === 'play' && challenge && <section className="game-page">
       <div className="game-heading"><div><div className="eyebrow"><span className="eyebrow-line" /> FIELD NOTES <span className="crumb">/ ROUND {String(roundIndex + 1).padStart(2, '0')}</span></div><h1>Where in the world <em>were we?</em></h1></div><div className={`timer-pill ${secondsLeft <= 15 ? 'timer-urgent' : ''}`}><Clock3 size={17} /><span>{String(Math.floor(secondsLeft / 60)).padStart(2, '0')}:{String(secondsLeft % 60).padStart(2, '0')}</span><small>REMAINING</small></div></div>
       <div className="round-progress" aria-label={`Round ${roundIndex + 1} of 5`}>{Array.from({ length: 5 }, (_, index) => <span key={index} className={index < roundIndex ? 'done' : index === roundIndex ? 'current' : ''} />)}<b>ROUND {roundIndex + 1} OF 5</b></div>
-      <div className="game-grid"><div className="prompt-column"><article className="photo-card"><img src={challenge.image} alt={challenge.alt} /><div className="photo-shade" /><div className="photo-meta"><span><span className="live-dot" /> CSA ARCHIVE · MOMENT {String(roundIndex + 1).padStart(2, '0')}</span><span>✳ UNDATED</span></div><div className="photo-caption"><span>YOUR PHOTO CLUE</span><strong>{challenge.caption}</strong><p>{challenge.photoNote}</p></div><div className="photo-frame-mark">CSA<br />2026</div></article>
+      <div className="game-grid"><div className="prompt-column"><article className="photo-card"><ChallengePhoto image={challenge.image} alt={challenge.alt} title={challenge.title} /><div className="photo-shade" /><div className="photo-meta"><span><span className="live-dot" /> CSA ARCHIVE · MOMENT {String(roundIndex + 1).padStart(2, '0')}</span><span>✳ UNDATED</span></div><div className="photo-caption"><span>YOUR PHOTO CLUE</span><strong>{challenge.caption}</strong><p>{challenge.photoNote}</p></div><div className="photo-frame-mark">CSA<br />2026</div></article>
         <div className="time-panel"><div className="panel-heading"><div><span className="step-tag">01</span><div><h2>When did it happen?</h2><p>Set the moment on the calendar.</p></div></div><div className="view-switch" role="tablist"><button className={timeView === 'timeline' ? 'active' : ''} onClick={() => setTimeView('timeline')} role="tab" aria-selected={timeView === 'timeline'}>Timeline</button><button className={timeView === 'calendar' ? 'active' : ''} onClick={() => setTimeView('calendar')} role="tab" aria-selected={timeView === 'calendar'}><CalendarDays size={13} /> Calendar</button></div></div>
           <div className="selected-moment"><Clock3 size={15} /><strong>{guess.time ? formatMoment(guess.time) : 'Choose a date and time'}</strong><span>{guess.time ? 'YOUR GUESS' : 'NO TIME SELECTED'}</span></div>
           {timeView === 'timeline' ? <Timeline value={timeValue} onChange={setSelectedTime} /> : <div className="calendar-controls"><label><span>DATE</span><input type="date" min={MIN_DATE.slice(0, 10)} max={MAX_DATE.slice(0, 10)} value={guess.time ? dateToInputValue(guess.time).slice(0, 10) : ''} onChange={(event) => { if (event.target.value) { const date = new Date(guess.time ?? MIN_DATE); const [year, month, day] = event.target.value.split('-').map(Number); date.setFullYear(year, month - 1, day); setSelectedTime(date) } }} /></label><label><span>TIME</span><input type="time" value={guess.time ? dateToInputValue(guess.time).slice(11, 16) : ''} onChange={(event) => { if (event.target.value) { const date = new Date(guess.time ?? MIN_DATE); const [hour, minute] = event.target.value.split(':').map(Number); date.setHours(hour, minute, 0, 0); setSelectedTime(date) } }} /></label></div>}
@@ -179,7 +192,7 @@ function App() {
     </section>}
 
     {screen === 'reveal' && challenge && <section className="reveal-page"><div className="eyebrow"><span className="eyebrow-line" /> THE MEMORY REVEALED <span className="crumb">/ ROUND {String(roundIndex + 1).padStart(2, '0')}</span></div>
-      <div className="reveal-layout"><div className="reveal-photo"><img src={challenge.image} alt={challenge.alt} /><span className="reveal-stamp">CSA<br />ARCHIVE</span><span className="reveal-photo-label">THE MOMENT · {challenge.place}</span></div><div className="reveal-copy"><span className="reveal-kicker">{challenge.category} · {formatMoment(new Date(challenge.date))}</span><h1>{challenge.title}</h1><p className="reveal-description">{challenge.description}</p>
+      <div className="reveal-layout"><div className="reveal-photo"><ChallengePhoto image={challenge.image} alt={challenge.alt} title={challenge.title} /><span className="reveal-stamp">CSA<br />ARCHIVE</span><span className="reveal-photo-label">THE MOMENT · {challenge.place}</span></div><div className="reveal-copy"><span className="reveal-kicker">{challenge.category} · {formatMoment(new Date(challenge.date))}</span><h1>{challenge.title}</h1><p className="reveal-description">{challenge.description}</p>
         <div className="score-breakdown"><div><span>PLACE</span><strong>{roundScore.location}<small>/ 500</small></strong><p>{roundScore.distance === null ? 'No pin placed' : `${Math.round(roundScore.distance)} km away`}</p></div><div><span>TIME</span><strong>{roundScore.time}<small>/ 500</small></strong><p>{roundScore.hours === null ? 'No time selected' : `${roundScore.hours.toFixed(1)} hours apart`}</p></div><div className="round-total"><span>ROUND SCORE</span><strong>{roundScore.total}<small>/ 1,000</small></strong><p>{getSpeedLabel(submittedAt)} decision</p></div></div>
         <div className="reveal-footer"><span><Sparkles size={15} /> {getTier(scoreThroughCurrent)} so far · {scoreThroughCurrent.toLocaleString()} pts</span><button className="primary-button" onClick={continueAfterReveal}>{roundIndex === 4 ? 'See my results' : 'Next memory'} <ArrowRight size={16} /></button></div></div></div>
     </section>}
