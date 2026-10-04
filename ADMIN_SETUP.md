@@ -74,7 +74,7 @@ In the GitHub repository settings, add a repository **Actions variable** (Settin
 
 - `VITE_API_BASE_URL` = `https://yourusername.pythonanywhere.com/api`
 
-The deployment workflow injects it at build time. Push to `main`, then set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**. The app is configured for `/chronoscape-atlas/`.
+The deployment workflow injects it at build time. Push to `main`, then set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**. The app is configured for `/CSA-TimeTravel/`, matching this repository's name.
 
 ## Security and data notes
 

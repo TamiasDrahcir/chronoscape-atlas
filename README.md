@@ -30,7 +30,7 @@ The **Media team** link opens a staff sign-in and challenge manager. Public sign
 
 ## Deploy
 
-The Pages workflow deploys the frontend on pushes to `main`; the Vite base path is set to `/chronoscape-atlas/`. Add `VITE_API_BASE_URL` as a GitHub Actions repository **variable** (it's a URL, not a secret) pointing at the deployed Django API. The Django backend itself must be deployed separately (e.g. PythonAnywhere) since GitHub Pages is static-only.
+The Pages workflow deploys the frontend on pushes to `main`; the Vite base path is set to `/CSA-TimeTravel/` to match this repository's name. Add `VITE_API_BASE_URL` as a GitHub Actions repository **variable** (it's a URL, not a secret) pointing at the deployed Django API. The Django backend itself must be deployed separately (e.g. PythonAnywhere) since GitHub Pages is static-only.
 
 ## Checks
 
