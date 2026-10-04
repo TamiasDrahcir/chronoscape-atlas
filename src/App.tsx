@@ -7,7 +7,7 @@ import './App.css'
 import './MediaFallback.css'
 import AdminPanel from './AdminPanel'
 import { dateToInputValue, formatDuration, formatMoment, getRoundScore, getSpeedLabel, getTier, type Challenge, type Family, type Guess, type LeaderboardEntry, type RoundResult, CHALLENGES, FAMILIES, MAX_DATE, MIN_DATE, loadLeaderboard, saveLeaderboard, shuffleChallenges } from './game'
-import { fromChallengeDTO, isApiConfigured, listPublicChallenges, type ChallengeDTO } from './api'
+import { fromChallengeDTO, isSupabaseConfigured, listPublicChallenges, type ChallengeDTO } from './api'
 
 type Screen = 'home' | 'play' | 'reveal' | 'complete' | 'leaderboard' | 'admin'
 type MapScope = 'campus' | 'area' | 'texas'
@@ -40,7 +40,7 @@ function MapView({ scope, guess, onPick, round }: { scope: MapScope; guess: Gues
   }
   const preset = presets[scope]
   return <MapContainer key={`${round}-${scope}`} center={preset.center} zoom={preset.zoom} scrollWheelZoom className="leaflet-map">
-    <TileLayer attribution='Map data &copy; <a href="https://www.usgs.gov/the-national-map-data-delivery">USGS The National Map</a>' url="https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}" />
+    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
     <ClickableMap onPick={onPick} />
     {guess && <Marker position={[guess.lat, guess.lng]} icon={guessPinIcon} />}
   </MapContainer>
@@ -87,7 +87,7 @@ function App() {
   const [challengeLoadError, setChallengeLoadError] = useState('')
 
   const refreshChallengePool = useCallback(async () => {
-    if (!isApiConfigured) return
+    if (!isSupabaseConfigured) return
     try {
       const rows = await listPublicChallenges()
       const challenges = (rows as ChallengeDTO[]).map(fromChallengeDTO)
@@ -106,7 +106,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!isApiConfigured) return
+    if (!isSupabaseConfigured) return
     const task = window.setTimeout(() => { void refreshChallengePool() }, 0)
     return () => window.clearTimeout(task)
   }, [refreshChallengePool])
@@ -188,7 +188,7 @@ function App() {
         <div className="map-panel"><div className="map-panel-header"><div><span className="step-tag">02</span><div><h2>Pin the place</h2><p>Click anywhere on the map to drop your pin.</p></div></div><span className="map-usa"><MapPin size={13} /> UNITED STATES</span></div>
           <div className="map-wrap"><MapView scope={mapScope} guess={guess.location} round={roundIndex} onPick={(point) => setGuess((current) => ({ ...current, location: { lat: point.lat, lng: point.lng } }))} /><div className="map-zoom-label">{mapScope === 'campus' ? 'COLLEGE STATION, TX' : mapScope === 'area' ? 'BRAZOS VALLEY, TX' : 'THE LONE STAR STATE'}</div><div className="map-presets" aria-label="Map view">{([['campus', 'Campus'], ['area', 'Bryan / C.S.'], ['texas', 'Texas']] as const).map(([scope, label]) => <button key={scope} className={mapScope === scope ? 'active' : ''} onClick={() => setMapScope(scope)}>{label}</button>)}</div></div>
           <div className="map-bottom"><div className="pin-status"><span className={`pin-status-dot ${guess.location ? 'placed' : ''}`} /><span>{guess.location ? `${guess.location.lat.toFixed(3)}°, ${guess.location.lng.toFixed(3)}°` : 'No pin dropped yet'}</span></div><span className="map-helper">ZOOM + / − TO EXPLORE</span></div></div></div>
-      <div className="game-footer"><span><b>{playerName}</b><span className="family-divider">·</span>{family} fam</span>{(!isApiConfigured || challengeLoadError) && <span className="demo-tag">SAMPLE CHALLENGES <i>·</i> {isApiConfigured ? 'archive unavailable' : 'replace before launch'}</span>}<button className="primary-button submit-button" onClick={revealRound}>Lock in my guess <ArrowRight size={16} /></button></div>
+      <div className="game-footer"><span><b>{playerName}</b><span className="family-divider">·</span>{family} fam</span>{(!isSupabaseConfigured || challengeLoadError) && <span className="demo-tag">SAMPLE CHALLENGES <i>·</i> {isSupabaseConfigured ? 'archive unavailable' : 'replace before launch'}</span>}<button className="primary-button submit-button" onClick={revealRound}>Lock in my guess <ArrowRight size={16} /></button></div>
     </section>}
 
     {screen === 'reveal' && challenge && <section className="reveal-page"><div className="eyebrow"><span className="eyebrow-line" /> THE MEMORY REVEALED <span className="crumb">/ ROUND {String(roundIndex + 1).padStart(2, '0')}</span></div>
