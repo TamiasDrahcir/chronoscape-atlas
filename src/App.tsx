@@ -40,7 +40,7 @@ function MapView({ scope, guess, onPick, round }: { scope: MapScope; guess: Gues
   }
   const preset = presets[scope]
   return <MapContainer key={`${round}-${scope}`} center={preset.center} zoom={preset.zoom} scrollWheelZoom className="leaflet-map">
-    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
+    <TileLayer attribution='Map data &copy; <a href="https://www.usgs.gov/the-national-map-data-delivery">USGS The National Map</a>' url="https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}" />
     <ClickableMap onPick={onPick} />
     {guess && <Marker position={[guess.lat, guess.lng]} icon={guessPinIcon} />}
   </MapContainer>
