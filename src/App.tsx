@@ -77,11 +77,18 @@ function App() {
     if (!isApiConfigured) return
     try {
       const rows = await listPublicChallenges()
-      setChallengePool((rows as ChallengeDTO[]).map(fromChallengeDTO))
-      setChallengeLoadError('')
+      const challenges = (rows as ChallengeDTO[]).map(fromChallengeDTO)
+      if (challenges.length >= 5) {
+        setChallengePool(challenges)
+        setChallengeLoadError('')
+      } else {
+        setChallengePool(CHALLENGES)
+        setChallengeLoadError(`Only ${challenges.length} active event${challenges.length === 1 ? '' : 's'} in the archive; using sample moments so you can play.`)
+      }
     } catch (error) {
-      setChallengePool([])
-      setChallengeLoadError(error instanceof Error ? error.message : 'Could not load the event archive.')
+      setChallengePool(CHALLENGES)
+      const reason = error instanceof Error ? error.message : 'Could not load the event archive.'
+      setChallengeLoadError(`${reason} Using sample moments so you can play.`)
     }
   }, [])
 
@@ -153,7 +160,7 @@ function App() {
       <div className="welcome-form-wrap"><div className="form-card"><div className="form-card-top"><span>BEFORE WE BEGIN</span><span className="card-number">01 / 02</span></div><h2>Make it a moment.</h2><p className="form-intro">Tell us who’s taking the trip.</p>
         <label className="field-label" htmlFor="player-name">YOUR NAME</label><input id="player-name" className="text-input" maxLength={28} placeholder="e.g. Alex Chen" value={playerName} onChange={(event) => setPlayerName(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && family) startGame() }} />
         <label className="field-label family-label">YOUR FAM <span>Choose your crew</span></label><div className="family-grid">{FAMILIES.map((name) => <button key={name} className={`family-option ${family === name ? 'selected' : ''}`} onClick={() => setFamily(name)}>{name}{family === name && <Check size={14} />}</button>)}</div>
-        <button className="primary-button start-button" disabled={!playerName.trim() || !family || challengePool.length < 5} onClick={startGame}>Let’s travel <ArrowRight size={17} /></button><p className="privacy-note"><span>✳</span> Your best run counts on the leaderboard.</p>{challengePool.length < 5 && <p className="challenge-pool-note">{isApiConfigured ? `${challengePool.length} active event${challengePool.length === 1 ? '' : 's'} · add at least five in the media archive to enable gameplay.` : 'Sample moments could not load; check the browser console and network connection.'}</p>}{challengeLoadError && <p className="challenge-pool-note error-text">Challenge archive error: {challengeLoadError}</p>}</div><div className="tape-note">SAY CHEESE! <span>↗</span></div></div>
+        <button className="primary-button start-button" disabled={!playerName.trim() || !family} onClick={startGame}>Let’s travel <ArrowRight size={17} /></button><p className="privacy-note"><span>✳</span> Your best run counts on the leaderboard.</p>{challengeLoadError && <p className="challenge-pool-note error-text">{challengeLoadError}</p>}</div><div className="tape-note">SAY CHEESE! <span>↗</span></div></div>
       <footer className="welcome-footer"><span>TEXAS A&amp;M · CHINESE STUDENT ASSOCIATION</span><span>COLLECTING LITTLE MOMENTS, 2026—2027</span></footer>
     </section>}
 
@@ -168,7 +175,7 @@ function App() {
         <div className="map-panel"><div className="map-panel-header"><div><span className="step-tag">02</span><div><h2>Pin the place</h2><p>Click anywhere on the map to drop your pin.</p></div></div><span className="map-usa"><MapPin size={13} /> UNITED STATES</span></div>
           <div className="map-wrap"><MapView scope={mapScope} guess={guess.location} round={roundIndex} onPick={(point) => setGuess((current) => ({ ...current, location: { lat: point.lat, lng: point.lng } }))} /><div className="map-zoom-label">{mapScope === 'campus' ? 'COLLEGE STATION, TX' : mapScope === 'area' ? 'BRAZOS VALLEY, TX' : 'THE LONE STAR STATE'}</div><div className="map-presets" aria-label="Map view">{([['campus', 'Campus'], ['area', 'Bryan / C.S.'], ['texas', 'Texas']] as const).map(([scope, label]) => <button key={scope} className={mapScope === scope ? 'active' : ''} onClick={() => setMapScope(scope)}>{label}</button>)}</div></div>
           <div className="map-bottom"><div className="pin-status"><span className={`pin-status-dot ${guess.location ? 'placed' : ''}`} /><span>{guess.location ? `${guess.location.lat.toFixed(3)}°, ${guess.location.lng.toFixed(3)}°` : 'No pin dropped yet'}</span></div><span className="map-helper">ZOOM + / − TO EXPLORE</span></div></div></div>
-      <div className="game-footer"><span><b>{playerName}</b><span className="family-divider">·</span>{family} fam</span>{!isApiConfigured && <span className="demo-tag">SAMPLE CHALLENGES <i>·</i> replace before launch</span>}<button className="primary-button submit-button" onClick={revealRound}>Lock in my guess <ArrowRight size={16} /></button></div>
+      <div className="game-footer"><span><b>{playerName}</b><span className="family-divider">·</span>{family} fam</span>{(!isApiConfigured || challengeLoadError) && <span className="demo-tag">SAMPLE CHALLENGES <i>·</i> {isApiConfigured ? 'archive unavailable' : 'replace before launch'}</span>}<button className="primary-button submit-button" onClick={revealRound}>Lock in my guess <ArrowRight size={16} /></button></div>
     </section>}
 
     {screen === 'reveal' && challenge && <section className="reveal-page"><div className="eyebrow"><span className="eyebrow-line" /> THE MEMORY REVEALED <span className="crumb">/ ROUND {String(roundIndex + 1).padStart(2, '0')}</span></div>
