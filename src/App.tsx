@@ -143,7 +143,7 @@ function App() {
 
   return <main className="app-shell">
     <header className="topbar">
-      <button className="brand-lockup" onClick={() => setScreen('home')} aria-label="ChronoScope Atlas home"><span className="brand-mark"><Compass size={20} /></span><span>CHRONOSCOPE <b>ATLAS</b></span></button>
+      <button className="brand-lockup" onClick={() => setScreen('home')} aria-label="ChronoScape Atlas home"><span className="brand-mark"><Compass size={20} /></span><span>CHRONOSCAPE <b>ATLAS</b></span></button>
       <div className="topbar-right"><span className="season-chip"><span /> 2026—27 SEASON</span><button className="leaderboard-link" onClick={() => setScreen('leaderboard')}><Trophy size={16} /> Leaderboard</button><button className="leaderboard-link admin-nav-link" onClick={() => setScreen('admin')}><ShieldCheck size={16} /> Media team</button></div>
     </header>
 

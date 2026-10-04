@@ -1,17 +1,17 @@
-# ChronoScope Atlas
+# ChronoScape Atlas
 
-A five-round CSA photo time-and-place guessing game. The game (`/`) is a React + TypeScript + Vite + Leaflet frontend deployed to GitHub Pages. The media-team admin workspace is a Django + Django REST Framework API (`server/`) with JWT auth, since GitHub Pages can't run a Python backend.
+A five-round CSA photo time-and-place guessing game. The React + TypeScript + Vite + Leaflet frontend and the Django + Django REST Framework admin API (`server/`) are built to deploy together as a single app, with Django serving the built frontend and the `/api/` endpoints from the same origin.
 
-## Run the game locally
+## Run locally (split dev servers)
 
 ```sh
 npm install
 npm run dev
 ```
 
-Without a configured API, the game runs on illustrative sample moments and browser-local leaderboard storage.
+Without a configured API, the game runs on illustrative sample moments and browser-local leaderboard storage. To exercise the real admin/API during development, run the backend (below) and set `VITE_API_BASE_URL=http://127.0.0.1:8000/api` in a root `.env.local`, then restart `npm run dev`.
 
-## Run the admin backend locally
+## Run the backend locally
 
 ```sh
 cd server
@@ -22,15 +22,15 @@ Copy-Item .env.example .env
 .venv\Scripts\python manage.py runserver 127.0.0.1:8000
 ```
 
-Then set `VITE_API_BASE_URL=http://127.0.0.1:8000/api` in a root `.env.local` for the frontend. Full instructions — including creating staff accounts, granting media-admin access, and deploying Django to PythonAnywhere — are in [ADMIN_SETUP.md](ADMIN_SETUP.md).
+Full instructions — including creating staff accounts, granting media-admin access, and deploying to PythonAnywhere — are in [ADMIN_SETUP.md](ADMIN_SETUP.md).
 
 ## Media-team administration
 
 The **Media team** link opens a staff sign-in and challenge manager. Public sign-up is disabled; staff accounts and the `Media Team` group are provisioned via the Django shell. Admins can create, update, publish/unpublish, and delete challenge entries, and upload event photos. At least five active challenges are needed for a game.
 
-## Deploy
+## Deploy (PythonAnywhere, single app)
 
-The Pages workflow deploys the frontend on pushes to `main`; the Vite base path is set to `/chronoscape-atlas/` to match this repository's name. Add `VITE_API_BASE_URL` as a GitHub Actions repository **variable** (it's a URL, not a secret) pointing at the deployed Django API. The Django backend itself must be deployed separately (e.g. PythonAnywhere) since GitHub Pages is static-only.
+Build the frontend (`npm run build`) so `dist/` sits at the repo root, then deploy `server/` to PythonAnywhere. Django serves the built frontend directly via WhiteNoise (same origin as the API), so no separate static host or CORS configuration is needed in production. See [ADMIN_SETUP.md](ADMIN_SETUP.md) for the full walkthrough.
 
 ## Checks
 

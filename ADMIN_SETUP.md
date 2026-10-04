@@ -57,30 +57,29 @@ Restart the Vite dev server after changing environment variables. Open the app a
 
 Only active challenges are loaded into gameplay. At least five active entries are required to start a full game. The API rejects event dates outside September 1, 2026 – June 1, 2027 and coordinates outside the US (including Alaska and Hawaii).
 
-## 5. Deploy the Django backend to PythonAnywhere
+## 5. Deploy everything to PythonAnywhere (single app)
 
-1. Create a PythonAnywhere account and open a **Bash console**.
-2. Clone or upload the repository, then `cd` into `server/`.
-3. Create a virtualenv and install requirements: `mkvirtualenv --python=/usr/bin/python3.11 chronoscope-env` then `pip install -r requirements.txt`.
-4. In the **Web** tab, create a new web app (Manual configuration, matching Python version), set the virtualenv path, and point the WSGI file to import `config.wsgi.application` (edit the generated WSGI file to add the `server/` path and `os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")`).
-5. Set environment variables for `SECRET_KEY`, `DEBUG=False`, `ALLOWED_HOSTS=yourusername.pythonanywhere.com`, and `CORS_ALLOWED_ORIGINS=https://tamiasdrahcir.github.io` (your Pages origin) — either in a `server/.env` file on PythonAnywhere or the Web tab's env var section.
-6. In the **Web** tab's static files section, map URL `/static/` to `server/staticfiles` and `/media/` to `server/media`, then run `python manage.py collectstatic`.
-7. Run `python manage.py migrate` on PythonAnywhere. SQLite is fine for this project's scale; the `db.sqlite3` file persists on disk.
-8. Reload the web app from the **Web** tab.
+The frontend and backend deploy together: Django serves the built React app (via WhiteNoise, from the repo root's `dist/` folder) and the `/api/` endpoints from the same origin, so there's no separate static host and no CORS configuration needed in production.
 
-## 6. Configure GitHub Pages
+1. Build the frontend locally first so `dist/` exists at the repo root: `npm run build` (run from the repo root, not `server/`).
+2. Create a PythonAnywhere account and open a **Bash console**.
+3. Clone or upload the repository (including the built `dist/` folder) to PythonAnywhere.
+4. Create a virtualenv and install requirements: `mkvirtualenv --python=/usr/bin/python3.11 chronoscapeatlas-env` then `cd` into `server/` and `pip install -r requirements.txt`.
+5. In the **Web** tab, create a new web app (Manual configuration, matching Python version), set the virtualenv path, and point the WSGI file to import `config.wsgi.application` (edit the generated WSGI file to add the `server/` path to `sys.path` and `os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")`).
+6. Set environment variables for `SECRET_KEY` and `ALLOWED_HOSTS=yourusername.pythonanywhere.com` — either in a `server/.env` file on PythonAnywhere or the Web tab's env var section. `DEBUG` should stay unset/`False` in production. `CORS_ALLOWED_ORIGINS` isn't needed here since the frontend and API share an origin.
+7. In the **Web** tab's static files section, map URL `/static/` to `server/staticfiles` and `/media/` to `server/media` (these are for Django's own admin UI and uploaded photos; the game and its JS/CSS are served directly from `dist/` by WhiteNoise, not through this mapping).
+8. Run `python manage.py collectstatic` and `python manage.py migrate` on PythonAnywhere. SQLite is fine for this project's scale; the `db.sqlite3` file persists on disk.
+9. Reload the web app from the **Web** tab. Visiting `https://yourusername.pythonanywhere.com/` now serves the game; the media team signs in via the same site.
 
-In the GitHub repository settings, add a repository **Actions variable** (Settings → Secrets and variables → Actions → *Variables* tab, not Secrets, since this is a public URL, not a credential):
+### Redeploying after a frontend change
 
-- `VITE_API_BASE_URL` = `https://yourusername.pythonanywhere.com/api`
-
-The deployment workflow injects it at build time. Push to `main`, then set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**. The app is configured for `/chronoscape-atlas/`, matching this repository's name.
+Rebuild locally (`npm run build`), re-upload/sync the updated `dist/` folder to PythonAnywhere, and reload the web app from the **Web** tab. No separate static hosting step is required.
 
 ## Security and data notes
 
 - The frontend never receives a Django secret key, database credentials, or superuser password — only short-lived JWT access/refresh tokens tied to a signed-in staff account.
 - Media-admin status is determined by Django group membership (`Media Team`) or `is_superuser`, checked on the server for every write; the browser cannot grant itself access.
-- `CORS_ALLOWED_ORIGINS` should list only the GitHub Pages origin (and `localhost` during development) — do not use a wildcard in production.
+- In production, the frontend and API share one origin, so no `CORS_ALLOWED_ORIGINS` entries are needed; that setting only matters for local split dev (`npm run dev` on a different port than Django).
 - The current leaderboard is still browser-local storage. This setup shares challenge records and photos, but it does not yet create a shared cloud leaderboard.
 - Replace the prototype sample entries with CSA-approved material. Do not publish private photos or event details without permission.
 

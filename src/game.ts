@@ -195,7 +195,7 @@ export function dateToInputValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-const LEADERBOARD_KEY = 'chronoscope-atlas-leaderboard-v1'
+const LEADERBOARD_KEY = 'chronoscapeatlas-leaderboard-v1'
 
 export function loadLeaderboard(): LeaderboardEntry[] {
   try {

@@ -3,8 +3,8 @@ import type { Challenge } from './game'
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, '')
 export const isApiConfigured = Boolean(API_BASE)
 
-const ACCESS_KEY = 'chronoscope-atlas-access-token'
-const REFRESH_KEY = 'chronoscope-atlas-refresh-token'
+const ACCESS_KEY = 'chronoscapeatlas-access-token'
+const REFRESH_KEY = 'chronoscapeatlas-refresh-token'
 
 const getAccessToken = () => localStorage.getItem(ACCESS_KEY)
 const getRefreshToken = () => localStorage.getItem(REFRESH_KEY)

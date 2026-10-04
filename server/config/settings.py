@@ -31,6 +31,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -86,6 +87,12 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# The built React frontend (npm run build) is served directly by WhiteNoise
+# from the repo root's dist/ folder, same-origin with the API.
+FRONTEND_DIST = BASE_DIR.parent / "dist"
+WHITENOISE_ROOT = FRONTEND_DIST if FRONTEND_DIST.exists() else None
+WHITENOISE_INDEX_FILE = True
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
@@ -114,6 +121,8 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",") if origin.strip()]
+# Only needed when running the frontend and backend on different origins during local development;
+# the combined PythonAnywhere deployment serves both from the same origin and needs no CORS.
 
 # The game's event window and United States coordinate bounds, shared with the frontend.
 CHALLENGE_MIN_EVENT_AT = "2026-09-01T00:00:00-05:00"
