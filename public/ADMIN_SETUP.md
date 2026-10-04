@@ -1,6 +1,6 @@
 # Media-team admin setup
 
-Full setup and security notes are in the project-root [`ADMIN_SETUP.md`](https://github.com/tamiasdrahcir/CSA-TimeTravel/blob/main/ADMIN_SETUP.md) once the repository is published.
+Full setup and security notes are in the project-root [`ADMIN_SETUP.md`](https://github.com/TamiasDrahcir/chronoscape-atlas/blob/main/ADMIN_SETUP.md) once the repository is published.
 
 ## Quick start
 
