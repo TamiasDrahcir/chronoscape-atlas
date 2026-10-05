@@ -1,0 +1,72 @@
+[
+  {
+    "id": "big-banana",
+    "image": "images/big_banana.jpg",
+    "alt": "A man in a big banana costume",
+    "caption": "Ay-yo!",
+    "photoNote": "Where da hell you get this?!",
+    "title": "Hirono/Miffy Kickback - Jeremy's Banana",
+    "category": "CSA · MIXER",
+    "date": "2026-10-03T23:19:00",
+    "lat": 30.5752111111,
+    "lng": -96.3210916667,
+    "place": "College Station, Texas",
+    "description": "Bonnie invited Hiros and Miffians to her apartment for a jungle-themed night of dance, music, and alc! 💃🎶🍷\nWatch your back, buddy 🍌🐒"
+  },
+    {
+    "id": "cookies-accepted",
+    "image": "images/cookies-accepted.jpg",
+    "alt": "People making cookies",
+    "caption": "It's six-seven, it's a monster...",
+    "photoNote": "<ding!> it's cookie time!",
+    "title": "Miffy Cookie/Movie Night - Cookie Making",
+    "category": "CSA · MIFFY",
+    "date": "2026-09-25T22:43:00",
+    "lat": 30.6258555556,
+    "lng": -96.3455694444,
+    "place": "College Station, Texas",
+    "description": "Miffians gathered at Ella's place for a cozy cookie-making session, karaoke, and movie night! 🎤🎥🍿\nCookies accepted! 🍪✅😋"
+  },
+    {
+    "id": "el-rey",
+    "image": "images/el_rey.jpg",
+    "alt": "The king hath arrived",
+    "caption": "The king might be the last to arrive...",
+    "photoNote": "but he shall never miss out!",
+    "title": "First Friday!",
+    "category": "CSA · WIDE",
+    "date": "2026-10-02T20:48:00",
+    "lat": 30.6732395,
+    "lng": -96.3736732,
+    "place": "Bryan, Texas",
+    "description": "Fams toured the town fair at Bryan, sampling food, playing games and enjoying the moment! 😄🔥🥰"
+  },
+    {
+    "id": "good-bull",
+    "image": "images/good_bull.jpg",
+    "alt": "Three people holding up trophies",
+    "caption": "Good luck, good bull",
+    "photoNote": "What are the odds?",
+    "title": "Hirono Good Bull Icehouse Social",
+    "category": "CSA · Hirono",
+    "date": "2026-09-16T22:20:00",
+    "lat": 30.6168759,
+    "lng": -96.3475089,
+    "place": "College Station, Texas",
+    "description": "The Good Bull Icehouse hosted a back-to-school bingo and trivia night ⭕🙋‍♂️🙋‍♀️\nIn the end, Bonnie won a lego set, Audrey won some cool merch, and William won a $25 Starbucks Gift Card!!! 🧊😎☕🍀"
+  },
+    {
+    "id": "mj-who",
+    "image": "images/mj_who.jpg",
+    "alt": "A man in an MJ jacket",
+    "caption": "You've been hit by... you've been hit by...",
+    "photoNote": "A smooth criminal!",
+    "title": "Jiating Olympics: Food Eating Competition",
+    "category": "CSA · WIDE",
+    "date": "2026-10-03T12:16:00",
+    "lat": 30.6318357,
+    "lng": -96.3388499,
+    "place": "College Station, Texas",
+    "description": "The Chef of Miffy walked into the arena with sheer style - and walked out winning 3rd place for Miffy! 🍣🥉🐰\nGo get 'em Chef! 💎🕺👨‍🍳"
+  }
+]
