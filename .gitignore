@@ -8,11 +8,11 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+dist/
 dist-ssr
 *.local
 .env
 .env.*
-!.env.example
 
 # Editor directories and files
 .vscode/*
@@ -25,14 +25,5 @@ dist-ssr
 *.sln
 *.sw?
 
-# Django backend
-server/.venv
-server/.env
-server/db.sqlite3
-server/media
-server/staticfiles
 __pycache__
 *.pyc
-
-# Supabase local development state
-.supabase

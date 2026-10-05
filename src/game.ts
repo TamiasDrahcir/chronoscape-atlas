@@ -17,6 +17,7 @@ export type Challenge = {
   lng: number
   place: string
   description: string
+  active?: boolean
 }
 
 export type Guess = {
@@ -39,106 +40,6 @@ export type LeaderboardEntry = {
   score: number
   secondsTaken: number
 }
-
-// Illustrative fixture moments; replace with CSA-approved photos and event details before launch.
-export const CHALLENGES: Challenge[] = [
-  {
-    id: 'welcome-back',
-    image: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1600&q=85',
-    alt: 'Friends gathered together at an outdoor student event',
-    caption: 'A new semester, all together',
-    photoNote: 'A familiar crowd. A brand-new year.',
-    title: 'The first hello of fall',
-    category: 'CSA · WELCOME SOCIAL',
-    date: '2026-09-12T17:30:00',
-    lat: 30.6188, lng: -96.3365, place: 'Texas A&M campus, College Station',
-    description: 'The semester opened with a simple tradition: new faces, old friends, and one more reason to gather on campus. The best moments started before anyone thought to take a photo.',
-  },
-  {
-    id: 'night-market',
-    image: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=1600&q=85',
-    alt: 'Warm lights illuminating a lively evening gathering',
-    caption: 'The evening had other plans',
-    photoNote: 'Look for the lights after the sun goes down.',
-    title: 'One more lap around the market',
-    category: 'CSA · NIGHT MARKET',
-    date: '2026-10-03T19:15:00',
-    lat: 30.6282, lng: -96.3341, place: 'College Station, Texas',
-    description: 'A little food, a lot of conversation, and the kind of evening that turns “just one more stop” into the whole night. Our imaginary archive remembers the glow more than the schedule.',
-  },
-  {
-    id: 'houston-trip',
-    image: 'https://images.unsplash.com/photo-1536152470836-b943b246224c?auto=format&fit=crop&w=1600&q=85',
-    alt: 'A downtown skyline at dusk seen from across a city park',
-    caption: 'The skyline on the way back',
-    photoNote: 'A day trip, a long playlist, one last group photo.',
-    title: 'A day beyond Aggieland',
-    category: 'CSA · CITY EXCURSION',
-    date: '2026-10-24T16:45:00',
-    lat: 29.7604, lng: -95.3698, place: 'Houston, Texas',
-    description: 'For one Saturday, the group traded campus paths for a city skyline. The return trip was quieter, the camera roll was fuller, and somebody was already planning the next outing.',
-  },
-  {
-    id: 'autumn-picnic',
-    image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=1600&q=85',
-    alt: 'Friends sharing a picnic outdoors on a bright day',
-    caption: 'A perfect excuse to stay awhile',
-    photoNote: 'The best seat was always the one with friends.',
-    title: 'An afternoon with no agenda',
-    category: 'CSA · AUTUMN HANGOUT',
-    date: '2026-11-08T13:00:00',
-    lat: 30.6206, lng: -96.3399, place: 'Texas A&M campus, College Station',
-    description: 'A breezy afternoon, shared snacks, and nowhere else anyone needed to be. The plan was to relax; the memory was how long everyone stayed.',
-  },
-  {
-    id: 'winter-lights',
-    image: 'https://images.unsplash.com/photo-1512389142860-9c449e58a543?auto=format&fit=crop&w=1600&q=85',
-    alt: 'Festive lights and decorations on a winter evening',
-    caption: 'The semester’s soft landing',
-    photoNote: 'One last gathering before the calendar turns.',
-    title: 'Before everyone headed home',
-    category: 'CSA · WINTER SOCIAL',
-    date: '2026-12-05T18:00:00',
-    lat: 30.6199, lng: -96.3412, place: 'College Station, Texas',
-    description: 'The end-of-semester gathering was a chance to celebrate everything the group had made together. There were warm lights, familiar faces, and promises to meet again after break.',
-  },
-  {
-    id: 'spring-kickoff',
-    image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1600&q=85',
-    alt: 'A group of friends enjoying a sunny afternoon together',
-    caption: 'The first sunny day felt like a reunion',
-    photoNote: 'New semester energy, same favorite people.',
-    title: 'Back in the sunshine',
-    category: 'CSA · SPRING KICKOFF',
-    date: '2027-01-23T14:30:00',
-    lat: 30.6168, lng: -96.3425, place: 'Texas A&M campus, College Station',
-    description: 'The spring semester started with sunshine and a familiar kind of excitement. Everyone came back with stories from break and left with plans for the weeks ahead.',
-  },
-  {
-    id: 'san-antonio',
-    image: 'https://images.unsplash.com/photo-1565358981514-5ac5a2c91d3e?auto=format&fit=crop&w=1600&q=85',
-    alt: 'A riverside walkway winding through a historic city',
-    caption: 'A little detour turned into the day',
-    photoNote: 'Follow the water and find the group.',
-    title: 'A weekend by the river',
-    category: 'CSA · TEXAS ROAD TRIP',
-    date: '2027-02-20T11:15:00',
-    lat: 29.4241, lng: -98.4936, place: 'San Antonio, Texas',
-    description: 'A road trip brought the crew to the riverwalk for an unhurried afternoon. The itinerary was flexible, the group photo was not, and the stories lasted longer than the drive home.',
-  },
-  {
-    id: 'culture-night',
-    image: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=1600&q=85',
-    alt: 'A stage illuminated by colorful lights during a live performance',
-    caption: 'The room came alive',
-    photoNote: 'A little stage fright, a lot of applause.',
-    title: 'A night made to be shared',
-    category: 'CSA · CULTURE NIGHT',
-    date: '2027-03-27T19:00:00',
-    lat: 30.6194, lng: -96.3379, place: 'College Station, Texas',
-    description: 'Friends took the stage, friends filled the seats, and the room found its rhythm. It was a celebration of the cultures and community that make the organization feel like home.',
-  },
-]
 
 export function shuffleChallenges(challenges: Challenge[]): Challenge[] {
   const shuffled = [...challenges]

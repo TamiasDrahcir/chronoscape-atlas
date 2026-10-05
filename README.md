@@ -1,28 +1,29 @@
 # ChronoScape Atlas
 
-A five-round CSA photo time-and-place guessing game built with React, TypeScript, Vite, and Leaflet. GitHub Pages hosts the frontend; Supabase provides challenge data, invite-only media-team authentication, and storage for approved game photos. The leaderboard is stored locally in each player's browser.
+A five-round CSA photo time-and-place guessing game built with React, TypeScript, Vite, and Leaflet. Challenge information lives in [`public/data/challenges.json`](public/data/challenges.json); photos are regular files in `public/images/`. No database, server, account, or upload service is used. Scores remain in each player's browser.
 
-## Local development
-
-1. Copy `.env.example` to `.env.local` and fill in the Supabase project URL and publishable key.
-2. Install dependencies and start Vite:
+## Run locally
 
 ```sh
 npm install
 npm run dev
 ```
 
-Without Supabase settings or five active challenge records, the app uses illustrative sample moments so gameplay remains available. Supabase database and Storage policies are required for secure admin behavior; see [ADMIN_SETUP.md](ADMIN_SETUP.md).
+## Update the archive
 
-## Media team
+Edit `public/data/challenges.json` and add the corresponding approved image file to `public/images/`. Set each challenge's `image` to a path like `images/welcome.jpg`. Set `"active": false` to keep a record out of game rounds; omit it or set it true to publish. The archive management screen explains the editing workflow. Changes to the hosted site require committing the files and publishing a new build; GitHub Pages cannot save edits from a visitor's browser.
 
-The **Media team** link opens staff sign-in and challenge management. Public sign-up is disabled; project owners invite staff and grant the trusted `app_metadata.media_admin` role. Supabase Row Level Security is authoritative for all reads and writes. Only CSA-approved photos intended for public gameplay should be uploaded to the public photo bucket.
+The bundled starting records and pictures are illustrative placeholders, not verified CSA event documentation. Replace them with approved content before treating the game as a real event archive.
 
-## Deploy
+## Publish on GitHub Pages without Actions
 
-The GitHub Actions workflow deploys the Vite build to GitHub Pages on pushes to `main`. Configure `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` as repository Actions variables. Never expose a Supabase service-role key in the browser or Pages build. The workflow obtains the Pages base path for the repository subpath.
+1. In the repository, open **Settings → Pages**. Choose **Deploy from a branch**, select branch `gh-pages` and folder `/(root)`, then save.
+2. On a computer with Git access to this repository, run `npm install` and `npm run deploy:pages`.
+3. The command builds the static app under `/chronoscapeatlas/` and pushes only the generated `dist/` files to `gh-pages`. It does not use GitHub Actions runners.
 
-Full Supabase project, schema, invite, migration, and deployment setup is in [ADMIN_SETUP.md](ADMIN_SETUP.md). The database schema and RLS policies are in [supabase/migrations/20261004000000_initial_schema.sql](supabase/migrations/20261004000000_initial_schema.sql).
+The first publish may take a few minutes. Future updates are published by running the same command again. GitHub Pages must be enabled for this repository; the command cannot change repository Pages settings.
+
+See [ADMIN_SETUP.md](ADMIN_SETUP.md) for the JSON format, image handling, and more deployment detail.
 
 ## Checks
 

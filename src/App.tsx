@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet'
 import L, { type LatLng } from 'leaflet'
-import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Compass, ImageOff, MapPin, RotateCcw, ShieldCheck, Sparkles, Trophy } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Compass, FileJson, ImageOff, MapPin, RotateCcw, Sparkles, Trophy } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import './App.css'
 import './MediaFallback.css'
 import AdminPanel from './AdminPanel'
-import { dateToInputValue, formatDuration, formatMoment, getRoundScore, getSpeedLabel, getTier, type Challenge, type Family, type Guess, type LeaderboardEntry, type RoundResult, CHALLENGES, FAMILIES, MAX_DATE, MIN_DATE, loadLeaderboard, saveLeaderboard, shuffleChallenges } from './game'
-import { fromChallengeDTO, isSupabaseConfigured, listPublicChallenges, type ChallengeDTO } from './api'
+import { dateToInputValue, formatDuration, formatMoment, getRoundScore, getSpeedLabel, getTier, type Challenge, type Family, type Guess, type LeaderboardEntry, type RoundResult, FAMILIES, MAX_DATE, MIN_DATE, loadLeaderboard, saveLeaderboard, shuffleChallenges } from './game'
+import { loadChallenges } from './staticChallenges'
 
 type Screen = 'home' | 'play' | 'reveal' | 'complete' | 'leaderboard' | 'admin'
 type MapScope = 'campus' | 'area' | 'texas'
@@ -83,30 +83,22 @@ function App() {
   const [results, setResults] = useState<RoundResult[]>([])
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(loadLeaderboard)
   const [submittedAt, setSubmittedAt] = useState(60)
-  const [challengePool, setChallengePool] = useState<Challenge[]>(CHALLENGES)
+  const [challengePool, setChallengePool] = useState<Challenge[]>([])
   const [challengeLoadError, setChallengeLoadError] = useState('')
 
   const refreshChallengePool = useCallback(async () => {
-    if (!isSupabaseConfigured) return
     try {
-      const rows = await listPublicChallenges()
-      const challenges = (rows as ChallengeDTO[]).map(fromChallengeDTO)
-      if (challenges.length >= 5) {
-        setChallengePool(challenges)
-        setChallengeLoadError('')
-      } else {
-        setChallengePool(CHALLENGES)
-        setChallengeLoadError(`Only ${challenges.length} active event${challenges.length === 1 ? '' : 's'} in the archive; using sample moments so you can play.`)
-      }
+      const challenges = await loadChallenges()
+      setChallengePool(challenges)
+      setChallengeLoadError(challenges.length < 5 ? `The JSON archive has ${challenges.length} challenge${challenges.length === 1 ? '' : 's'}; add at least five to enable gameplay.` : '')
     } catch (error) {
-      setChallengePool(CHALLENGES)
+      setChallengePool([])
       const reason = error instanceof Error ? error.message : 'Could not load the event archive.'
-      setChallengeLoadError(`${reason} Using sample moments so you can play.`)
+      setChallengeLoadError(`${reason} Check public/data/challenges.json and its image files.`)
     }
   }, [])
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return
     const task = window.setTimeout(() => { void refreshChallengePool() }, 0)
     return () => window.clearTimeout(task)
   }, [refreshChallengePool])
@@ -164,7 +156,7 @@ function App() {
   return <main className="app-shell">
     <header className="topbar">
       <button className="brand-lockup" onClick={() => setScreen('home')} aria-label="ChronoScape Atlas home"><span className="brand-mark"><Compass size={20} /></span><span>CHRONOSCAPE <b>ATLAS</b></span></button>
-      <div className="topbar-right"><span className="season-chip"><span /> 2026—27 SEASON</span><button className="leaderboard-link" onClick={() => setScreen('leaderboard')}><Trophy size={16} /> Leaderboard</button><button className="leaderboard-link admin-nav-link" onClick={() => setScreen('admin')}><ShieldCheck size={16} /> Media team</button></div>
+      <div className="topbar-right"><span className="season-chip"><span /> 2026—27 SEASON</span><button className="leaderboard-link" onClick={() => setScreen('leaderboard')}><Trophy size={16} /> Leaderboard</button><button className="leaderboard-link admin-nav-link" onClick={() => setScreen('admin')}><FileJson size={16} /> Archive files</button></div>
     </header>
 
     {screen === 'home' && <section className="welcome-page">
@@ -173,7 +165,7 @@ function App() {
       <div className="welcome-form-wrap"><div className="form-card"><div className="form-card-top"><span>BEFORE WE BEGIN</span><span className="card-number">01 / 02</span></div><h2>Make it a moment.</h2><p className="form-intro">Tell us who’s taking the trip.</p>
         <label className="field-label" htmlFor="player-name">YOUR NAME</label><input id="player-name" className="text-input" maxLength={28} placeholder="e.g. Alex Chen" value={playerName} onChange={(event) => setPlayerName(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && family) startGame() }} />
         <label className="field-label family-label">YOUR FAM <span>Choose your crew</span></label><div className="family-grid">{FAMILIES.map((name) => <button key={name} className={`family-option ${family === name ? 'selected' : ''}`} onClick={() => setFamily(name)}>{name}{family === name && <Check size={14} />}</button>)}</div>
-        <button className="primary-button start-button" disabled={!playerName.trim() || !family} onClick={startGame}>Let’s travel <ArrowRight size={17} /></button><p className="privacy-note"><span>✳</span> Your best run counts on the leaderboard.</p>{challengeLoadError && <p className="challenge-pool-note error-text">{challengeLoadError}</p>}</div><div className="tape-note">SAY CHEESE! <span>↗</span></div></div>
+        <button className="primary-button start-button" disabled={!playerName.trim() || !family || challengePool.length < 5} onClick={startGame}>Let’s travel <ArrowRight size={17} /></button><p className="privacy-note"><span>✳</span> Your best run counts on the leaderboard.</p>{challengePool.length === 0 && !challengeLoadError && <p className="challenge-pool-note">Loading moments from the local archive…</p>}{challengeLoadError && <p className="challenge-pool-note error-text">{challengeLoadError}</p>}</div><div className="tape-note">SAY CHEESE! <span>↗</span></div></div>
       <footer className="welcome-footer"><span>TEXAS A&amp;M · CHINESE STUDENT ASSOCIATION</span><span>COLLECTING LITTLE MOMENTS, 2026—2027</span></footer>
     </section>}
 
@@ -188,7 +180,7 @@ function App() {
         <div className="map-panel"><div className="map-panel-header"><div><span className="step-tag">02</span><div><h2>Pin the place</h2><p>Click anywhere on the map to drop your pin.</p></div></div><span className="map-usa"><MapPin size={13} /> UNITED STATES</span></div>
           <div className="map-wrap"><MapView scope={mapScope} guess={guess.location} round={roundIndex} onPick={(point) => setGuess((current) => ({ ...current, location: { lat: point.lat, lng: point.lng } }))} /><div className="map-zoom-label">{mapScope === 'campus' ? 'COLLEGE STATION, TX' : mapScope === 'area' ? 'BRAZOS VALLEY, TX' : 'THE LONE STAR STATE'}</div><div className="map-presets" aria-label="Map view">{([['campus', 'Campus'], ['area', 'Bryan / C.S.'], ['texas', 'Texas']] as const).map(([scope, label]) => <button key={scope} className={mapScope === scope ? 'active' : ''} onClick={() => setMapScope(scope)}>{label}</button>)}</div></div>
           <div className="map-bottom"><div className="pin-status"><span className={`pin-status-dot ${guess.location ? 'placed' : ''}`} /><span>{guess.location ? `${guess.location.lat.toFixed(3)}°, ${guess.location.lng.toFixed(3)}°` : 'No pin dropped yet'}</span></div><span className="map-helper">ZOOM + / − TO EXPLORE</span></div></div></div>
-      <div className="game-footer"><span><b>{playerName}</b><span className="family-divider">·</span>{family} fam</span>{(!isSupabaseConfigured || challengeLoadError) && <span className="demo-tag">SAMPLE CHALLENGES <i>·</i> {isSupabaseConfigured ? 'archive unavailable' : 'replace before launch'}</span>}<button className="primary-button submit-button" onClick={revealRound}>Lock in my guess <ArrowRight size={16} /></button></div>
+      <div className="game-footer"><span><b>{playerName}</b><span className="family-divider">·</span>{family} fam</span><span className="demo-tag">LOCAL JSON ARCHIVE</span><button className="primary-button submit-button" onClick={revealRound}>Lock in my guess <ArrowRight size={16} /></button></div>
     </section>}
 
     {screen === 'reveal' && challenge && <section className="reveal-page"><div className="eyebrow"><span className="eyebrow-line" /> THE MEMORY REVEALED <span className="crumb">/ ROUND {String(roundIndex + 1).padStart(2, '0')}</span></div>
@@ -207,7 +199,7 @@ function App() {
         <aside className="family-card"><div className="leaderboard-card-head"><div><Sparkles size={17} /><h2>Fam standings</h2></div><span>AVERAGES</span></div>{familyRows.map((row, index) => <div className={`family-row ${index === 0 && row.count > 0 ? 'fam-leader' : ''}`} key={row.name}><span className="family-rank">{String(index + 1).padStart(2, '0')}</span><span className="family-name">{row.name}<small>{row.count} {row.count === 1 ? 'adventurer' : 'adventurers'}</small></span><b>{row.score.toLocaleString()}<small> AVG</small></b></div>)}<p className="family-footnote">Average best score per adventurer · faster time breaks ties</p></aside></div>
       <button className="secondary-button back-button" onClick={() => setScreen('home')}><ArrowLeft size={16} /> Back to the atlas</button>
     </section>}
-    {screen === 'admin' && <AdminPanel onExit={() => setScreen('home')} onChallengesChanged={refreshChallengePool} />}
+    {screen === 'admin' && <AdminPanel onExit={() => setScreen('home')} />}
     <footer className="site-footer"><span>CSA · TEXAS A&amp;M UNIVERSITY</span><span>MADE OF MOMENTS <i>✳</i></span><span>SEASON 2026—27</span></footer>
   </main>
 }

@@ -1,117 +1,59 @@
-# Supabase setup and media-team administration
+# Local challenge archive and deployment
 
-ChronoScape Atlas is a static React/Vite application deployed to GitHub Pages. Supabase provides challenge records (Postgres), staff sign-in (Auth), and approved public game photos (Storage). The old Django server is retained temporarily as the source for production data migration and rollback; it is no longer used by the frontend.
+The live game is static. It reads challenge records from `public/data/challenges.json` and photos from `public/images/`. There is no Django server, Supabase project, database, account system, or browser-based upload. The leaderboard is stored in each player's own browser.
 
-## 1. Create the Supabase project
+## Add or update a challenge
 
-Create a Supabase project in a region acceptable for the organization. In **Project Settings → API**, copy the project URL and the publishable key (or legacy anon key). These are browser-visible values; never use the `service_role` key in the frontend, a GitHub Pages variable, or a checked-in file.
+Edit `public/data/challenges.json`. The file must contain a JSON array of objects. Each active object needs the following fields:
 
-In **Authentication → Providers → Email**, keep email/password sign-in enabled and disable public sign-ups. Staff accounts must be invited by a project owner. In **Authentication → URL Configuration**, set the Site URL to the deployed Pages URL and add redirect URLs for that URL and local development (`http://localhost:5173/**`). The current repository Pages URL is expected to be `https://tamiasdrahcir.github.io/chronoscapeatlas/`; confirm it under the repository's **Settings → Pages** before configuring Supabase.
-
-## 2. Create the database and storage policies
-
-Open the Supabase **SQL Editor** and run the complete migration in [`supabase/migrations/20261004000000_initial_schema.sql`](supabase/migrations/20261004000000_initial_schema.sql). It creates the `challenges` table, validation constraints, active-only public reads, media-admin write policies, the `challenge-photos` public bucket, and upload/delete policies. The public bucket is intentionally for CSA-approved photos used in gameplay: anyone with an image URL can download those files. Do not upload private or unapproved draft photos to it.
-
-The security model reads `media_admin: true` from Supabase Auth's trusted `app_metadata`; users cannot edit their own `app_metadata`. Do not substitute `user_metadata` for this claim.
-
-## 3. Invite media admins
-
-In **Authentication → Users**, invite each staff member by email. Once the invite creates the user, grant the trusted role in the SQL Editor, replacing the email with that user's exact address:
-
-```sql
-update auth.users
-set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb)
-  || '{"media_admin": true}'::jsonb
-where lower(email) = lower('staffer@example.com');
+```json
+{
+  "id": "welcome-social-2026",
+  "image": "images/welcome-social.jpg",
+  "alt": "Students gathered outdoors at a campus event",
+  "caption": "A new semester, all together",
+  "photoNote": "A familiar crowd. A brand-new year.",
+  "title": "The first hello of fall",
+  "category": "CSA · WELCOME SOCIAL",
+  "date": "2026-09-12T17:30:00",
+  "lat": 30.6188,
+  "lng": -96.3365,
+  "place": "Texas A&M campus, College Station",
+  "description": "The approved event details shown after the round.",
+  "active": true
+}
 ```
 
-Confirm the update affected exactly one user. The staff member should accept the invite and set a password, then sign in through **Media team** in the app. Have them sign out and back in after role changes so the JWT contains the current app metadata. To revoke media access, set `media_admin` to false (or remove that key) in the user's `app_metadata` using a trusted Supabase admin channel; never grant roles from the client.
+Add the image file at `public/images/welcome-social.jpg`. `image` paths must start with `images/`; filenames are case-sensitive on the published Linux host. Use a unique `id`. Set `active` to `false` to hide a record from gameplay without deleting it; it can be omitted or set to `true` to include it. Keep at least five active records for the five-round game. Use only CSA-approved photos and event details. The starter data and bundled pictures are illustrative samples and must not be represented as verified CSA events.
 
-## 4. Configure local development
+JSON syntax matters: use double quotes, commas between fields and records, and no trailing comma after the final field. The site validates required fields, duplicate IDs, and that images stay under `public/images/` when it loads the archive.
 
-Copy `.env.example` to `.env.local` in the repository root and set the Supabase project URL and publishable key:
+## Publish changes to GitHub Pages without Actions
 
-```dotenv
-VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
-```
+GitHub Actions is not used for this deployment. Pages serves the generated static files from a dedicated `gh-pages` branch.
 
-Then run:
+### One-time GitHub setting
+
+In the repository, open **Settings → Pages**. Set **Build and deployment → Source** to **Deploy from a branch**. Select branch `gh-pages`, folder `/(root)`, then save. The branch will be created the first time the local publish command runs. If GitHub does not yet let you choose a branch that does not exist, first create/push an empty `gh-pages` branch, select it in Pages settings, then run the publish command below.
+
+### Publish from your computer
+
+After editing the JSON and adding images, open a terminal in the repository and run:
 
 ```sh
 npm install
-npm run dev
+npm run build
+npm run deploy:pages
 ```
 
-Restart Vite after changing environment values. Without these values, gameplay uses illustrative sample moments and Supabase-backed admin functions are unavailable.
+`deploy:pages` builds the site for `https://tamiasdrahcir.github.io/chronoscapeatlas/` and publishes only `dist/` to the `gh-pages` branch. It does not invoke GitHub Actions. Git must be authenticated for push access to this repository. Wait a few minutes after the first publish, then open the Pages URL shown in **Settings → Pages**.
 
-## 5. Configure GitHub Pages
+If this is a fork or the repository name changes, update the `/chronoscapeatlas/` base in the `build:pages` script in `package.json` to match `/<repository-name>/` before publishing.
 
-In the repository, open **Settings → Secrets and variables → Actions → Variables** and add:
+## Important limits
 
-- `VITE_SUPABASE_URL` — the Supabase Project URL.
-- `VITE_SUPABASE_PUBLISHABLE_KEY` — the Supabase publishable (or anon) key.
-
-These values are public by design; database and Storage policies must remain secure even if a visitor reads them. Never create a Pages variable containing a service-role key. Ensure **Settings → Pages → Build and deployment** uses **GitHub Actions**, then push to `main` or run the workflow manually. The workflow sets the Pages base path while building, so the repository subpath is included in asset URLs.
-
-## 6. Migrate production challenges and photos
-
-Before changing or deleting Django, identify the authoritative deployed SQLite database and its matching media directory. The checked-out `server/db.sqlite3` may not be the live database. Make a protected backup of both, export every challenge (including inactive rows, IDs, timestamps, image URL/file path, and creator email), and copy the original photos. For a PythonAnywhere source, run this from the deployed `server/` directory with its configured virtualenv:
-
-```sh
-python manage.py dumpdata challenges.Challenge --indent 2 --output /tmp/challenges.json
-```
-
-Download that JSON fixture and the matching `server/media/` files to a trusted local migration workspace. Do not export password hashes or commit database/media backups, `.env` files, or Supabase service-role credentials.
-
-The repository includes `scripts/import-django-fixture.mjs` to upload Django image files and import fixture rows. Install npm dependencies, set the four environment variables in a private local shell (never paste the service-role key into chat, source, GitHub Actions, or a committed file), then run the script:
-
-```sh
-export DJANGO_EXPORT_PATH=/path/to/challenges.json
-export DJANGO_MEDIA_DIR=/path/to/server/media
-export SUPABASE_URL=https://your-project-ref.supabase.co
-read -s -p "Supabase service-role key: " SUPABASE_SERVICE_ROLE_KEY; echo
-export SUPABASE_SERVICE_ROLE_KEY
-node scripts/import-django-fixture.mjs
-unset SUPABASE_SERVICE_ROLE_KEY
-```
-
-In PowerShell, set `$env:DJANGO_EXPORT_PATH`, `$env:DJANGO_MEDIA_DIR`, and `$env:SUPABASE_URL`, then securely read the service key and run the importer:
-
-```powershell
-$secureKey = Read-Host "Supabase service-role key" -AsSecureString
-$env:SUPABASE_SERVICE_ROLE_KEY = [System.Net.NetworkCredential]::new("", $secureKey).Password
-node scripts/import-django-fixture.mjs
-Remove-Item Env:SUPABASE_SERVICE_ROLE_KEY
-```
-
-The script uploads existing files to the `challenge-photos` bucket and records their Storage path in `image_path`; it retains `image_url` when no uploaded file exists. It imports IDs and timestamps but leaves `created_by` null because Django user IDs do not correspond to Supabase Auth UUIDs. Run the script only against a verified export and a backup of the destination project. The service-role key bypasses RLS and must remain private.
-
-Since explicit IDs do not advance Postgres's identity sequence, reset it after import:
-
-```sql
-select setval(
-  pg_get_serial_sequence('public.challenges', 'id'),
-  coalesce(max(id), 1),
-  max(id) is not null
-)
-from public.challenges;
-```
-
-Re-invite staff and map `created_by` to their new Supabase Auth UUIDs if creator attribution is needed. Django password hashes cannot be carried over as Supabase passwords; staff must set new passwords through invitations. Compare record counts, IDs, active state, dates, coordinates, text fields, and every photo URL before switching the Pages site. Keep the old database and media backup intact through the rollback period.
-
-## 7. Verify access before launch
-
-Test with three identities: logged out, an invited non-admin, and a media admin.
-
-- Logged out: can read active challenges and download approved public photos; cannot see inactive challenges, edit records, or upload/delete photos.
-- Invited non-admin: still cannot see drafts or make changes.
-- Media admin: can list drafts and create, edit, activate/deactivate, delete, upload, replace, and remove challenge photos.
-- Game: at least five active challenges load; otherwise the sample fallback keeps the game playable. The leaderboard remains local to each browser.
-- Pages: verify the deployed repository-subpath URL, assets, Supabase Auth, photos, game start, and admin help link.
-
-Run `npm run build` and `npm run lint`. Review RLS and Storage policies in Supabase before publishing real content. Supabase free-tier quotas, pausing, backups, and retention should be checked against the current plan before relying on the service for production.
-
-## Retiring Django
-
-Do not remove `server/` until production data and photos have been migrated, the Pages deployment has passed the checks above, and a rollback copy is confirmed. After sign-off, Django source, requirements, and PythonAnywhere-specific deployment instructions can be removed from the active repository; retain only the protected data export required by the organization's retention policy.
+- Visitors cannot upload photos or edit the JSON through the deployed page. Make file changes in the repository and publish a new build.
+- Anyone can inspect or download files in `public/`; never put private photos, secrets, or personal data there.
+- The browser-local leaderboard is not shared and can be cleared by the player.
+- Static files are downloadable but not protected by login or access control. Do not place any secrets or sensitive information in the challenge JSON.
+- Production challenge data from the retired Django deployment was not automatically copied into these starter files. If it must be retained, export it from the deployed service and convert the authorized rows/photos into this documented format before removing the old copy.

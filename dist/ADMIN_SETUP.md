@@ -1,13 +1,10 @@
-# Media-team admin setup
+# Local challenge archive
 
-Full setup and security notes are in the project-root [`ADMIN_SETUP.md`](https://github.com/TamiasDrahcir/chronoscapeatlas/blob/main/ADMIN_SETUP.md) once the repository is published.
+The game reads from a JSON file and a folder of public images; there is no online database or in-browser editor.
 
-## Quick start
+1. Edit `public/data/challenges.json` in the repository.
+2. Add image files to `public/images/` and use paths such as `images/event.jpg` in JSON.
+3. Keep at least five active records. Use `"active": false` to keep a record out of game rounds.
+4. Commit the changes and publish a new static build. See the full [local archive and GitHub Pages guide](https://github.com/TamiasDrahcir/chronoscapeatlas/blob/main/ADMIN_SETUP.md).
 
-1. Run the Django backend in `server/` (see the root guide for exact commands): create a virtualenv, install `requirements.txt`, copy `.env.example` to `.env`, run `manage.py migrate`.
-2. Create staff accounts via `manage.py shell` and add them to the `Media Team` group. There is no public sign-up endpoint.
-3. Build the frontend (`npm run build`) so Django can serve `dist/` directly alongside the API from the same origin.
-4. Deploy `server/` (with the built `dist/` folder alongside it) to PythonAnywhere. Django serves both the game and the API from one app; no separate static host is needed.
-5. Open **Media team** in the game header and sign in. Admins can add, edit, activate/deactivate, and delete event challenges and upload photos.
-
-At least five active challenge records are required before a game can start. Only approved, CSA-owned/authorized photos and event details should be published. The leaderboard currently remains local to each browser.
+Files under `public/` are visible to every site visitor. Use only approved public content and never put secrets or sensitive information there. The starter records are illustrative placeholders, not verified CSA events.
