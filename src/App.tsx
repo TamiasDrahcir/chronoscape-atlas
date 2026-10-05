@@ -39,8 +39,16 @@ function MapView({ scope, guess, onPick, round }: { scope: MapScope; guess: Gues
     texas: { center: [31.1, -99.2], zoom: 6 },
   }
   const preset = presets[scope]
+  const mapKey = import.meta.env.VITE_MAP_API_KEY
+  const mapUrl = mapKey
+    ? `https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=${mapKey}`
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+
   return <MapContainer key={`${round}-${scope}`} center={preset.center} zoom={preset.zoom} scrollWheelZoom className="leaflet-map">
-    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
+    <TileLayer
+      attribution={mapKey ? '&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'}
+      url={mapUrl}
+    />
     <ClickableMap onPick={onPick} />
     {guess && <Marker position={[guess.lat, guess.lng]} icon={guessPinIcon} />}
   </MapContainer>
