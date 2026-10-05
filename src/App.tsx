@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet'
+import { MapContainer, Marker, Polyline, TileLayer, useMapEvents } from 'react-leaflet'
 import L, { type LatLng } from 'leaflet'
-import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Compass, FileJson, ImageOff, MapPin, RotateCcw, Sparkles, Trophy } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Compass, ImageOff, MapPin, RotateCcw, Sparkles, Trophy } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import './App.css'
+import './Calendar.css'
+import './Motion.css'
 import './MediaFallback.css'
-import AdminPanel from './AdminPanel'
 import { dateToInputValue, formatDuration, formatMoment, getRoundScore, getSpeedLabel, getTier, type Challenge, type Family, type Guess, type LeaderboardEntry, type RoundResult, FAMILIES, MAX_DATE, MIN_DATE, loadLeaderboard, saveLeaderboard, shuffleChallenges } from './game'
 import { loadChallenges } from './staticChallenges'
 
-type Screen = 'home' | 'play' | 'reveal' | 'complete' | 'leaderboard' | 'admin'
+type Screen = 'home' | 'play' | 'reveal' | 'complete' | 'leaderboard'
 type MapScope = 'campus' | 'area' | 'texas'
 
 const emptyGuess = (): Guess => ({ location: null, time: null })
@@ -39,15 +40,11 @@ function MapView({ scope, guess, onPick, round }: { scope: MapScope; guess: Gues
     texas: { center: [31.1, -99.2], zoom: 6 },
   }
   const preset = presets[scope]
-  const mapKey = import.meta.env.VITE_MAP_API_KEY
-  const mapUrl = mapKey
-    ? `https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=${mapKey}`
-    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
 
   return <MapContainer key={`${round}-${scope}`} center={preset.center} zoom={preset.zoom} scrollWheelZoom className="leaflet-map">
     <TileLayer
-      attribution={mapKey ? '&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'}
-      url={mapUrl}
+      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
     />
     <ClickableMap onPick={onPick} />
     {guess && <Marker position={[guess.lat, guess.lng]} icon={guessPinIcon} />}
@@ -78,6 +75,157 @@ function Timeline({ value, onChange }: { value: Date; onChange: (date: Date) => 
   </div>
 }
 
+function CalendarPicker({ value, onChange }: { value: Date | null; onChange: (date: Date) => void }) {
+  const minDate = new Date(`${MIN_DATE.slice(0, 10)}T00:00:00`)
+  const maxDate = new Date(`${MAX_DATE.slice(0, 10)}T00:00:00`)
+  const [visibleMonth, setVisibleMonth] = useState(() => {
+    const initial = value ?? minDate
+    return new Date(initial.getFullYear(), initial.getMonth(), 1)
+  })
+  const year = visibleMonth.getFullYear()
+  const month = visibleMonth.getMonth()
+  const firstWeekday = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const previousMonth = new Date(year, month - 1, 1)
+  const nextMonth = new Date(year, month + 1, 1)
+  const canGoBack = previousMonth >= new Date(minDate.getFullYear(), minDate.getMonth(), 1)
+  const canGoForward = nextMonth <= new Date(maxDate.getFullYear(), maxDate.getMonth(), 1)
+
+  return <div className="calendar-picker">
+    <div className="calendar-picker-top">
+      <strong>{visibleMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</strong>
+      <div className="calendar-month-nav">
+        <button type="button" aria-label="Previous month" disabled={!canGoBack} onClick={() => setVisibleMonth(previousMonth)}>‹</button>
+        <button type="button" aria-label="Next month" disabled={!canGoForward} onClick={() => setVisibleMonth(nextMonth)}>›</button>
+      </div>
+    </div>
+    <div className="calendar-days-grid" role="group" aria-label="Choose a date">
+      {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => <span className="calendar-weekday" key={day}>{day}</span>)}
+      {Array.from({ length: firstWeekday }, (_, index) => <span className="calendar-empty-day" key={`empty-${index}`} />)}
+      {Array.from({ length: daysInMonth }, (_, index) => {
+        const day = index + 1
+        const date = new Date(year, month, day)
+        const disabled = date < minDate || date > maxDate
+        const selected = value?.getFullYear() === year && value.getMonth() === month && value.getDate() === day
+        return <button type="button" key={day} className={`calendar-day ${selected ? 'selected' : ''}`} disabled={disabled} aria-pressed={selected} aria-label={date.toLocaleDateString('en-US', { dateStyle: 'full' })}
+          onClick={() => onChange(new Date(year, month, day, value?.getHours() ?? 12, value?.getMinutes() ?? 0))}>{day}</button>
+      })}
+    </div>
+    <label className="calendar-time-field"><span>TIME</span><input type="time" disabled={!value} value={value ? dateToInputValue(value).slice(11, 16) : ''}
+      onChange={(event) => {
+        if (!value || !event.target.value) return
+        const [hour, minute] = event.target.value.split(':').map(Number)
+        const updated = new Date(value)
+        updated.setHours(hour, minute, 0, 0)
+        const lower = new Date(MIN_DATE)
+        const upper = new Date(MAX_DATE)
+        onChange(new Date(Math.max(lower.getTime(), Math.min(upper.getTime(), updated.getTime()))))
+      }} /></label>
+  </div>
+}
+
+type RevealStage = 'location' | 'time' | 'complete'
+
+function RevealRouteMap({ challenge, guess }: { challenge: Challenge; guess: Guess['location'] }) {
+  const actual: [number, number] = [challenge.lat, challenge.lng]
+  const guessed: [number, number] | null = guess ? [guess.lat, guess.lng] : null
+  const bounds = guessed ? [actual, guessed] as [[number, number], [number, number]] : undefined
+  const guessIcon = L.divIcon({ className: 'reveal-map-pin guess', html: '<span></span>', iconSize: [18, 18], iconAnchor: [9, 9] })
+  const actualIcon = L.divIcon({ className: 'reveal-map-pin actual', html: '<span></span>', iconSize: [18, 18], iconAnchor: [9, 9] })
+
+  return <MapContainer center={actual} zoom={13} bounds={bounds} boundsOptions={{ padding: [34, 34], maxZoom: 14 }} scrollWheelZoom={false} dragging={false} zoomControl={false} doubleClickZoom={false} className="reveal-route-map">
+    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+    {guessed && <Polyline positions={[guessed, actual]} pathOptions={{ className: 'animated-route-line', color: '#cf593b', weight: 3, opacity: 0.9 }} />}
+    {guessed && <Marker position={guessed} icon={guessIcon} />}
+    <Marker position={actual} icon={actualIcon} />
+  </MapContainer>
+}
+
+function RevealJourney({ challenge, guess, roundScore, onComplete }: { challenge: Challenge; guess: Guess; roundScore: ReturnType<typeof getRoundScore>; onComplete: () => void }) {
+  const actualTime = new Date(challenge.date).getTime()
+  const guessedTime = guess.time?.getTime() ?? actualTime
+  const [stage, setStage] = useState<RevealStage>(guess.location ? 'location' : 'time')
+  const [distanceShown, setDistanceShown] = useState(0)
+  const [locationPointsShown, setLocationPointsShown] = useState(0)
+  const [timeShown, setTimeShown] = useState(guessedTime)
+  const [timePointsShown, setTimePointsShown] = useState(0)
+  const [timeProgress, setTimeProgress] = useState(0)
+  const finalDistance = roundScore.distance ?? 0
+  const finalHours = roundScore.hours ?? 0
+
+  useEffect(() => {
+    if (stage !== 'location') return
+    let frame = 0
+    const start = performance.now()
+    const duration = 1800
+    const tick = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1)
+      const eased = 1 - (1 - progress) ** 3
+      setDistanceShown(finalDistance * eased)
+      setLocationPointsShown(roundScore.location * eased)
+      if (progress < 1) frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    const transition = window.setTimeout(() => setStage('time'), 2700)
+    return () => { cancelAnimationFrame(frame); window.clearTimeout(transition) }
+  }, [finalDistance, roundScore.location, stage])
+
+  useEffect(() => {
+    if (stage !== 'time') return
+    let frame = 0
+    const start = performance.now()
+    const startDelay = 350
+    const duration = 2100
+    const tick = (now: number) => {
+      const progress = Math.max(0, Math.min((now - start - startDelay) / duration, 1))
+      const eased = 1 - (1 - progress) ** 3
+      setTimeShown(guessedTime + (actualTime - guessedTime) * eased)
+      setTimePointsShown(roundScore.time * eased)
+      setTimeProgress(eased)
+      if (progress < 1) frame = requestAnimationFrame(tick)
+      else setStage('complete')
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [actualTime, guessedTime, roundScore.time, stage])
+
+  useEffect(() => {
+    if (stage === 'complete') onComplete()
+  }, [onComplete, stage])
+
+  const deltaShown = finalHours * timeProgress
+  const displayDistance = (value: number) => value < 1 ? `${Math.round(value * 1000)} m` : `${value.toFixed(1)} km`
+  const rollingTime = new Date(timeShown)
+
+  return <div className={`reveal-journey reveal-stage-${stage}`}>
+    <section className={`journey-panel location-journey ${stage !== 'location' ? 'journey-done' : 'journey-active'}`} aria-label="Location accuracy reveal">
+      <div className="journey-panel-heading"><span className="journey-step">01 · PLACE</span><h2>{stage === 'location' ? 'Tracing your guess…' : 'Your location guess'}</h2></div>
+      <div className="location-journey-content">
+        <div className="route-map-shell"><RevealRouteMap challenge={challenge} guess={guess.location} /><div className="route-map-legend"><span><i className="guess-key" /> YOUR GUESS</span><span><i className="actual-key" /> ACTUAL LOCATION</span></div></div>
+        <div className="journey-metrics">
+          <span className="metric-kicker">DISTANCE FROM THE MOMENT</span>
+          {guess.location ? <strong className="rolling-metric">{stage === 'location' ? displayDistance(distanceShown) : displayDistance(finalDistance)}</strong> : <strong className="rolling-metric no-guess">No pin placed</strong>}
+          <span className="metric-support">{guess.location ? 'between your pin and the actual location' : 'Place a pin on the map next time to score location points'}</span>
+          <div className="metric-score"><span>PLACE SCORE</span><strong>{Math.round(stage === 'location' ? locationPointsShown : roundScore.location)}<small> / 500</small></strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section className={`journey-panel time-journey ${stage === 'time' ? 'journey-active' : ''} ${stage === 'complete' ? 'journey-done' : ''}`} aria-label="Time accuracy reveal">
+      <div className="journey-panel-heading"><span className="journey-step">02 · TIME</span><h2>{stage === 'location' ? 'Next: when did it happen?' : stage === 'time' ? 'Turning back the clock…' : 'Your time guess'}</h2></div>
+      <div className="time-journey-content">
+        <div className="time-guess-card"><span className="metric-kicker">YOUR GUESS</span><strong>{guess.time ? formatMoment(guess.time) : 'No time selected'}</strong></div>
+        <div className="time-roll-card"><span className="metric-kicker">THE ACTUAL MOMENT</span><strong className={`rolling-time ${stage === 'time' ? 'is-rolling' : ''}`}>{stage === 'location' ? 'Waiting for the place…' : guess.time ? formatMoment(rollingTime) : formatMoment(new Date(actualTime))}</strong>
+          <div className="time-delta"><span>TIME APART</span><strong>{guess.time ? (stage === 'time' ? deltaShown.toFixed(1) : "0") : '—'}<small>{guess.time ? ' hours' : ''}</small></strong></div>
+        </div>
+        <div className="metric-score time-score"><span>TIME SCORE</span><strong>{Math.round(stage === 'time' ? timePointsShown : stage === 'complete' ? roundScore.time : 0)}<small> / 500</small></strong></div>
+      </div>
+    </section>
+
+    {stage === 'complete' && <div className="journey-celebration" aria-hidden="true">{Array.from({ length: 26 }, (_, index) => <i key={index} style={{ '--confetti-x': `${(index * 37 + 9) % 100}%`, '--confetti-delay': `${(index % 9) * 65}ms`, '--confetti-hue': `${(index * 41) % 360}deg` } as React.CSSProperties} />)}</div>}
+  </div>
+}
+
 function App() {
   const [screen, setScreen] = useState<Screen>('home')
   const [playerName, setPlayerName] = useState('')
@@ -91,6 +239,7 @@ function App() {
   const [results, setResults] = useState<RoundResult[]>([])
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(loadLeaderboard)
   const [submittedAt, setSubmittedAt] = useState(60)
+  const [revealAnimationComplete, setRevealAnimationComplete] = useState(false)
   const [challengePool, setChallengePool] = useState<Challenge[]>([])
   const [challengeLoadError, setChallengeLoadError] = useState('')
 
@@ -102,7 +251,7 @@ function App() {
     } catch (error) {
       setChallengePool([])
       const reason = error instanceof Error ? error.message : 'Could not load the event archive.'
-      setChallengeLoadError(`${reason} Check public/data/challenges.json and its image files.`)
+      setChallengeLoadError(`${reason} Please try again later.`)
     }
   }, [])
 
@@ -122,6 +271,7 @@ function App() {
       setSecondsLeft(remaining)
       if (remaining === 0) {
         setSubmittedAt(60)
+        setRevealAnimationComplete(false)
         setScreen('reveal')
       }
     }, 250)
@@ -134,7 +284,7 @@ function App() {
     setRoundChallenges(shuffleChallenges(challengePool).slice(0, 5))
     setRoundIndex(0); setResults([]); setGuess(emptyGuess()); setSecondsLeft(60); setMapScope('campus'); setScreen('play')
   }
-  const revealRound = () => { setSubmittedAt(60 - secondsLeft); setScreen('reveal') }
+  const revealRound = () => { setSubmittedAt(60 - secondsLeft); setRevealAnimationComplete(false); setScreen('reveal') }
   const continueAfterReveal = () => {
     const nextResults = [...results, { ...roundScore, secondsTaken: submittedAt }]
     setResults(nextResults)
@@ -157,6 +307,7 @@ function App() {
     const members = leaderboard.filter((entry) => entry.family === name)
     return { name, count: members.length, score: members.length ? Math.round(members.reduce((sum, item) => sum + item.score, 0) / members.length) : 0, seconds: members.length ? Math.round(members.reduce((sum, item) => sum + item.secondsTaken, 0) / members.length) : 0 }
   }).sort((a, b) => b.score - a.score || a.seconds - b.seconds), [leaderboard])
+  const handleRevealComplete = useCallback(() => setRevealAnimationComplete(true), [])
   const setSelectedTime = (date: Date) => setGuess((current) => ({ ...current, time: date }))
   const timeValue = guess.time ?? new Date(MIN_DATE)
   const scoreThroughCurrent = totalScore + (screen === 'reveal' ? roundScore.total : 0)
@@ -164,7 +315,7 @@ function App() {
   return <main className="app-shell">
     <header className="topbar">
       <button className="brand-lockup" onClick={() => setScreen('home')} aria-label="ChronoScape Atlas home"><span className="brand-mark"><Compass size={20} /></span><span>CHRONOSCAPE <b>ATLAS</b></span></button>
-      <div className="topbar-right"><span className="season-chip"><span /> 2026—27 SEASON</span><button className="leaderboard-link" onClick={() => setScreen('leaderboard')}><Trophy size={16} /> Leaderboard</button><button className="leaderboard-link admin-nav-link" onClick={() => setScreen('admin')}><FileJson size={16} /> Archive files</button></div>
+      <div className="topbar-right"><span className="season-chip"><span /> 2026—27 SEASON</span><button className="leaderboard-link" onClick={() => setScreen('leaderboard')}><Trophy size={16} /> Leaderboard</button></div>
     </header>
 
     {screen === 'home' && <section className="welcome-page">
@@ -183,7 +334,7 @@ function App() {
       <div className="game-grid"><div className="prompt-column"><article className="photo-card"><ChallengePhoto image={challenge.image} alt={challenge.alt} title={challenge.title} /><div className="photo-shade" /><div className="photo-meta"><span><span className="live-dot" /> CSA ARCHIVE · MOMENT {String(roundIndex + 1).padStart(2, '0')}</span><span>✳ UNDATED</span></div><div className="photo-caption"><span>YOUR PHOTO CLUE</span><strong>{challenge.caption}</strong><p>{challenge.photoNote}</p></div><div className="photo-frame-mark">CSA<br />2026</div></article>
         <div className="time-panel"><div className="panel-heading"><div><span className="step-tag">01</span><div><h2>When did it happen?</h2><p>Set the moment on the calendar.</p></div></div><div className="view-switch" role="tablist"><button className={timeView === 'timeline' ? 'active' : ''} onClick={() => setTimeView('timeline')} role="tab" aria-selected={timeView === 'timeline'}>Timeline</button><button className={timeView === 'calendar' ? 'active' : ''} onClick={() => setTimeView('calendar')} role="tab" aria-selected={timeView === 'calendar'}><CalendarDays size={13} /> Calendar</button></div></div>
           <div className="selected-moment"><Clock3 size={15} /><strong>{guess.time ? formatMoment(guess.time) : 'Choose a date and time'}</strong><span>{guess.time ? 'YOUR GUESS' : 'NO TIME SELECTED'}</span></div>
-          {timeView === 'timeline' ? <Timeline value={timeValue} onChange={setSelectedTime} /> : <div className="calendar-controls"><label><span>DATE</span><input type="date" min={MIN_DATE.slice(0, 10)} max={MAX_DATE.slice(0, 10)} value={guess.time ? dateToInputValue(guess.time).slice(0, 10) : ''} onChange={(event) => { if (event.target.value) { const date = new Date(guess.time ?? MIN_DATE); const [year, month, day] = event.target.value.split('-').map(Number); date.setFullYear(year, month - 1, day); setSelectedTime(date) } }} /></label><label><span>TIME</span><input type="time" value={guess.time ? dateToInputValue(guess.time).slice(11, 16) : ''} onChange={(event) => { if (event.target.value) { const date = new Date(guess.time ?? MIN_DATE); const [hour, minute] = event.target.value.split(':').map(Number); date.setHours(hour, minute, 0, 0); setSelectedTime(date) } }} /></label></div>}
+          {timeView === 'timeline' ? <Timeline value={timeValue} onChange={setSelectedTime} /> : <CalendarPicker key={roundIndex} value={guess.time} onChange={setSelectedTime} />}
           <div className="allowed-range">THE MOMENTS ARE BETWEEN <b>SEP 01, 2026</b> AND <b>JUN 01, 2027</b></div></div></div>
         <div className="map-panel"><div className="map-panel-header"><div><span className="step-tag">02</span><div><h2>Pin the place</h2><p>Click anywhere on the map to drop your pin.</p></div></div><span className="map-usa"><MapPin size={13} /> UNITED STATES</span></div>
           <div className="map-wrap"><MapView scope={mapScope} guess={guess.location} round={roundIndex} onPick={(point) => setGuess((current) => ({ ...current, location: { lat: point.lat, lng: point.lng } }))} /><div className="map-zoom-label">{mapScope === 'campus' ? 'COLLEGE STATION, TX' : mapScope === 'area' ? 'BRAZOS VALLEY, TX' : 'THE LONE STAR STATE'}</div><div className="map-presets" aria-label="Map view">{([['campus', 'Campus'], ['area', 'Bryan / C.S.'], ['texas', 'Texas']] as const).map(([scope, label]) => <button key={scope} className={mapScope === scope ? 'active' : ''} onClick={() => setMapScope(scope)}>{label}</button>)}</div></div>
@@ -193,8 +344,9 @@ function App() {
 
     {screen === 'reveal' && challenge && <section className="reveal-page"><div className="eyebrow"><span className="eyebrow-line" /> THE MEMORY REVEALED <span className="crumb">/ ROUND {String(roundIndex + 1).padStart(2, '0')}</span></div>
       <div className="reveal-layout"><div className="reveal-photo"><ChallengePhoto image={challenge.image} alt={challenge.alt} title={challenge.title} /><span className="reveal-stamp">CSA<br />ARCHIVE</span><span className="reveal-photo-label">THE MOMENT · {challenge.place}</span></div><div className="reveal-copy"><span className="reveal-kicker">{challenge.category} · {formatMoment(new Date(challenge.date))}</span><h1>{challenge.title}</h1><p className="reveal-description">{challenge.description}</p>
-        <div className="score-breakdown"><div><span>PLACE</span><strong>{roundScore.location}<small>/ 500</small></strong><p>{roundScore.distance === null ? 'No pin placed' : `${Math.round(roundScore.distance)} km away`}</p></div><div><span>TIME</span><strong>{roundScore.time}<small>/ 500</small></strong><p>{roundScore.hours === null ? 'No time selected' : `${roundScore.hours.toFixed(1)} hours apart`}</p></div><div className="round-total"><span>ROUND SCORE</span><strong>{roundScore.total}<small>/ 1,000</small></strong><p>{getSpeedLabel(submittedAt)} decision</p></div></div>
-        <div className="reveal-footer"><span><Sparkles size={15} /> {getTier(scoreThroughCurrent)} so far · {scoreThroughCurrent.toLocaleString()} pts</span><button className="primary-button" onClick={continueAfterReveal}>{roundIndex === 4 ? 'See my results' : 'Next memory'} <ArrowRight size={16} /></button></div></div></div>
+        </div></div>
+      <RevealJourney key={`${roundIndex}-${challenge.id}`} challenge={challenge} guess={guess} roundScore={roundScore} onComplete={handleRevealComplete} />
+      <div className="reveal-footer"><span><Sparkles size={15} /> {getTier(scoreThroughCurrent)} so far · {scoreThroughCurrent.toLocaleString()} pts</span><div className="reveal-footer-result"><strong>{roundScore.total.toLocaleString()}<small> / 1,000</small></strong><span>{getSpeedLabel(submittedAt)} decision</span></div><button className="primary-button" onClick={continueAfterReveal} disabled={!revealAnimationComplete}>{roundIndex === 4 ? 'See my results' : 'Next memory'} <ArrowRight size={16} /></button></div>
     </section>}
 
     {screen === 'complete' && <section className="complete-page"><div className="complete-confetti">✳　✦　✳</div><div className="eyebrow"><span className="eyebrow-line" /> YOUR TIME CAPSULE IS COMPLETE</div><h1>Well traveled,<br /><em>{playerName}.</em></h1><p className="complete-subtitle">Five moments down. Here’s how your memory lane measured up.</p>
@@ -203,11 +355,10 @@ function App() {
     </section>}
 
     {screen === 'leaderboard' && <section className="leaderboard-page"><div className="eyebrow"><span className="eyebrow-line" /> THE WALL OF MEMORIES</div><h1>Good company.<br /><em>Great memories.</em></h1><p className="leaderboard-intro">Your best run counts. Ties are broken by the fastest trip through time.</p>
-      <div className="leaderboard-grid"><div className="leaderboard-card"><div className="leaderboard-card-head"><div><Trophy size={17} /><h2>Individual adventurers</h2></div><span>BEST RUNS</span></div>{leaderboard.length ? <div className="leaderboard-table"><div className="leaderboard-row table-header"><span>RANK</span><span>ADVENTURER</span><span>FAM</span><span>SCORE</span><span>TIME</span></div>{leaderboard.slice(0, 10).map((entry, index) => <div className={`leaderboard-row ${playerName && entry.name.toLowerCase() === playerName.toLowerCase() ? 'you-row' : ''}`} key={`${entry.name}-${entry.family}`}><span className="rank-number">{String(index + 1).padStart(2, '0')}</span><span className="entry-name">{entry.name}{playerName && entry.name.toLowerCase() === playerName.toLowerCase() && <small>YOU</small>}</span><span><i className="fam-dot" />{entry.family}</span><b>{entry.score.toLocaleString()}</b><span>{formatDuration(entry.secondsTaken)}</span></div>)}</div> : <div className="empty-leaderboard"><Trophy size={26} /><strong>The first memory is yours to make.</strong><span>Complete a five-round run to join the board.</span></div>}</div>
-        <aside className="family-card"><div className="leaderboard-card-head"><div><Sparkles size={17} /><h2>Fam standings</h2></div><span>AVERAGES</span></div>{familyRows.map((row, index) => <div className={`family-row ${index === 0 && row.count > 0 ? 'fam-leader' : ''}`} key={row.name}><span className="family-rank">{String(index + 1).padStart(2, '0')}</span><span className="family-name">{row.name}<small>{row.count} {row.count === 1 ? 'adventurer' : 'adventurers'}</small></span><b>{row.score.toLocaleString()}<small> AVG</small></b></div>)}<p className="family-footnote">Average best score per adventurer · faster time breaks ties</p></aside></div>
+      <div className="leaderboard-grid"><div className="leaderboard-card"><div className="leaderboard-card-head"><div><Trophy size={17} /><h2>Individual adventurers</h2></div><span>BEST RUNS</span></div>{leaderboard.length ? <div className="leaderboard-table"><div className="leaderboard-row table-header"><span>RANK</span><span>ADVENTURER</span><span>FAM</span><span>SCORE</span><span>TIME</span></div>{leaderboard.slice(0, 10).map((entry, index) => <div className={`leaderboard-row leaderboard-float-in ${playerName && entry.name.toLowerCase() === playerName.toLowerCase() ? 'you-row' : ''}`} style={{ '--stagger-index': index } as React.CSSProperties} key={`${entry.name}-${entry.family}`}><span className="rank-number">{String(index + 1).padStart(2, '0')}</span><span className="entry-name">{entry.name}{playerName && entry.name.toLowerCase() === playerName.toLowerCase() && <small>YOU</small>}</span><span><i className="fam-dot" />{entry.family}</span><b>{entry.score.toLocaleString()}</b><span>{formatDuration(entry.secondsTaken)}</span></div>)}</div> : <div className="empty-leaderboard"><Trophy size={26} /><strong>The first memory is yours to make.</strong><span>Complete a five-round run to join the board.</span></div>}</div>
+        <aside className="family-card"><div className="leaderboard-card-head"><div><Sparkles size={17} /><h2>Fam standings</h2></div><span>AVERAGES</span></div>{familyRows.map((row, index) => <div className={`family-row leaderboard-float-in ${index === 0 && row.count > 0 ? 'fam-leader' : ''}`} style={{ '--stagger-index': index } as React.CSSProperties} key={row.name}><span className="family-rank">{String(index + 1).padStart(2, '0')}</span><span className="family-name">{row.name}<small>{row.count} {row.count === 1 ? 'adventurer' : 'adventurers'}</small></span><b>{row.score.toLocaleString()}<small> AVG</small></b></div>)}<p className="family-footnote">Average best score per adventurer · faster time breaks ties</p></aside></div>
       <button className="secondary-button back-button" onClick={() => setScreen('home')}><ArrowLeft size={16} /> Back to the atlas</button>
     </section>}
-    {screen === 'admin' && <AdminPanel onExit={() => setScreen('home')} />}
     <footer className="site-footer"><span>CSA · TEXAS A&amp;M UNIVERSITY</span><span>MADE OF MOMENTS <i>✳</i></span><span>SEASON 2026—27</span></footer>
   </main>
 }

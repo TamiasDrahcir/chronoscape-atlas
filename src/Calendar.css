@@ -1,0 +1,122 @@
+.reveal-description {
+  white-space: pre-line;
+}
+
+.calendar-picker {
+  width: min(100%, 330px);
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: var(--light);
+}
+
+.calendar-picker-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.calendar-picker-top > strong {
+  color: var(--ink);
+  font: 500 15px var(--serif);
+}
+
+.calendar-month-nav {
+  display: flex;
+  gap: 5px;
+}
+
+.calendar-month-nav button {
+  width: 29px;
+  height: 27px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.calendar-month-nav button:disabled {
+  opacity: .35;
+  cursor: default;
+}
+
+.calendar-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.calendar-weekday,
+.calendar-empty-day,
+.calendar-day {
+  display: grid;
+  min-width: 0;
+  height: 31px;
+  place-items: center;
+}
+
+.calendar-weekday {
+  color: var(--muted);
+  font: 8px var(--mono);
+}
+
+.calendar-day {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.calendar-day:not(:disabled):hover {
+  background: #eeeae0;
+}
+
+.calendar-day.selected {
+  background: var(--ink);
+  color: white;
+}
+
+.calendar-day:disabled {
+  color: #c6c2b8;
+  cursor: not-allowed;
+}
+
+.calendar-day:focus-visible,
+.calendar-month-nav button:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 1px;
+}
+
+.calendar-time-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.calendar-time-field > span {
+  color: var(--muted);
+  font: 8px var(--mono);
+  letter-spacing: .08em;
+}
+
+.calendar-time-field input {
+  min-height: 32px;
+  border: 1px solid var(--line);
+  padding: 4px 8px;
+  background: white;
+  color: var(--ink);
+  font-size: 11px;
+}
+
+@media (max-width: 700px) {
+  .calendar-picker {
+    width: 100%;
+  }
+}
