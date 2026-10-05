@@ -216,7 +216,7 @@ function RevealJourney({ challenge, guess, roundScore, onComplete }: { challenge
       <div className="time-journey-content">
         <div className="time-guess-card"><span className="metric-kicker">YOUR GUESS</span><strong>{guess.time ? formatMoment(guess.time) : 'No time selected'}</strong></div>
         <div className="time-roll-card"><span className="metric-kicker">THE ACTUAL MOMENT</span><strong className={`rolling-time ${stage === 'time' ? 'is-rolling' : ''}`}>{stage === 'location' ? 'Waiting for the place…' : guess.time ? formatMoment(rollingTime) : formatMoment(new Date(actualTime))}</strong>
-          <div className="time-delta"><span>TIME APART</span><strong>{guess.time ? (stage === 'time' ? deltaShown.toFixed(1) : "0") : '—'}<small>{guess.time ? ' hours' : ''}</small></strong></div>
+          <div className="time-delta"><span>TIME APART</span><strong>{guess.time ? (stage === 'complete' ? finalHours.toFixed(1) : stage === 'time' ? deltaShown.toFixed(1) : "0") : '—'}<small>{guess.time ? ' hours' : ''}</small></strong></div>
         </div>
         <div className="metric-score time-score"><span>TIME SCORE</span><strong>{Math.round(stage === 'time' ? timePointsShown : stage === 'complete' ? roundScore.time : 0)}<small> / 500</small></strong></div>
       </div>
