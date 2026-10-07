@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MapContainer, Marker, Polyline, TileLayer, useMapEvents } from 'react-leaflet'
 import L, { type LatLng } from 'leaflet'
-import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Compass, ImageOff, MapPin, RotateCcw, Sparkles, Trophy } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarDays, Check, Clock3, Compass, ImageOff, MapPin, RotateCcw, Shield, Sparkles, Trophy } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import './App.css'
 import './Calendar.css'
@@ -9,8 +9,9 @@ import './Motion.css'
 import './MediaFallback.css'
 import { dateToInputValue, formatDuration, formatMoment, getRoundScore, getSpeedLabel, getTier, type Challenge, type Family, type Guess, type LeaderboardEntry, type RoundResult, FAMILIES, MAX_DATE, MIN_DATE, loadLeaderboard, saveLeaderboard, shuffleChallenges } from './game'
 import { loadChallenges } from './staticChallenges'
+import AdminConsole from './AdminConsole'
 
-type Screen = 'home' | 'play' | 'reveal' | 'complete' | 'leaderboard'
+type Screen = 'home' | 'play' | 'reveal' | 'complete' | 'leaderboard' | 'admin'
 type MapScope = 'campus' | 'area' | 'texas'
 
 const emptyGuess = (): Guess => ({ location: null, time: null })
@@ -315,7 +316,7 @@ function App() {
   return <main className="app-shell">
     <header className="topbar">
       <button className="brand-lockup" onClick={() => setScreen('home')} aria-label="ChronoScape Atlas home"><span className="brand-mark"><Compass size={20} /></span><span>CHRONOSCAPE <b>ATLAS</b></span></button>
-      <div className="topbar-right"><span className="season-chip"><span /> 2026—27 SEASON</span><button className="leaderboard-link" onClick={() => setScreen('leaderboard')}><Trophy size={16} /> Leaderboard</button></div>
+      <div className="topbar-right"><span className="season-chip"><span /> 2026—27 SEASON</span><button className="leaderboard-link" onClick={() => setScreen('leaderboard')}><Trophy size={16} /> Leaderboard</button><button className="leaderboard-link" aria-label="Archive admin" onClick={() => setScreen('admin')}><Shield size={16} /> Admin</button></div>
     </header>
 
     {screen === 'home' && <section className="welcome-page">
@@ -359,6 +360,7 @@ function App() {
         <aside className="family-card"><div className="leaderboard-card-head"><div><Sparkles size={17} /><h2>Fam standings</h2></div><span>AVERAGES</span></div>{familyRows.map((row, index) => <div className={`family-row leaderboard-float-in ${index === 0 && row.count > 0 ? 'fam-leader' : ''}`} style={{ '--stagger-index': index } as React.CSSProperties} key={row.name}><span className="family-rank">{String(index + 1).padStart(2, '0')}</span><span className="family-name">{row.name}<small>{row.count} {row.count === 1 ? 'adventurer' : 'adventurers'}</small></span><b>{row.score.toLocaleString()}<small> AVG</small></b></div>)}<p className="family-footnote">Average best score per adventurer · faster time breaks ties</p></aside></div>
       <button className="secondary-button back-button" onClick={() => setScreen('home')}><ArrowLeft size={16} /> Back to the atlas</button>
     </section>}
+    {screen === 'admin' && <AdminConsole onExit={() => setScreen('home')} onSaved={refreshChallengePool} />}
     <footer className="site-footer"><span>CSA · TEXAS A&amp;M UNIVERSITY</span><span>MADE OF MOMENTS <i>✳</i></span><span>SEASON 2026—27</span></footer>
   </main>
 }

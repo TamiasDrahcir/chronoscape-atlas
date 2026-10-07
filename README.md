@@ -1,6 +1,6 @@
 # ChronoScape Atlas
 
-A five-round CSA photo time-and-place guessing game built with React, TypeScript, Vite, and Leaflet. Challenge information lives in [`public/data/challenges.json`](public/data/challenges.json); photos are regular files in `public/images/`. No database, server, account, or upload service is used. Scores remain in each player's browser.
+A five-round CSA photo time-and-place guessing game built with React, TypeScript, Vite, and Leaflet. Challenge information lives in [`public/data/challenges.json`](public/data/challenges.json); photos are regular files in `public/images/`. The game and leaderboard are static/browser-local. A separately deployed, optional Cloudflare Worker provides secure admin authentication and repository-backed archive editing.
 
 ## Run locally
 
@@ -11,7 +11,7 @@ npm run dev
 
 ## Update the archive
 
-Edit `public/data/challenges.json` and add the corresponding approved image file to `public/images/`. Set each challenge's `image` to a path like `images/welcome.jpg`. Set `"active": false` to keep a record out of game rounds; omit it or set it true to publish. The archive management screen explains the editing workflow. Changes to the hosted site require committing the files and publishing a new build; GitHub Pages cannot save edits from a visitor's browser.
+Edit `public/data/challenges.json` and add the corresponding approved image file to `public/images/`. Set each challenge's `image` to a path like `images/welcome.jpg`. Set `"active": false` to keep a record out of game rounds; omit it or set it true to publish. The archive management screen can be enabled with the optional Worker described in [ADMIN_SETUP.md](ADMIN_SETUP.md). Without that service, edit the files in the repository and publish a new build; GitHub Pages itself cannot save edits from a visitor's browser.
 
 The bundled starting records and pictures are illustrative placeholders, not verified CSA event documentation. Replace them with approved content before treating the game as a real event archive.
 
